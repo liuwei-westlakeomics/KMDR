@@ -1,0 +1,145 @@
+```{r peptide_corrpolt}
+rm(list = ls())
+
+DIAnnPep<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+
+peptide2<-c(as.matrix(peptide$elements))
+
+DIAnnPep2<-data.frame(DIAnnPep[c(which(DIAnnPep$peptide %in% peptide2)),])
+
+DIAnnPep2$peptide<-factor(DIAnnPep2$peptide,levels=peptide2)
+
+DIAnnPep2<-DIAnnPep2[order(DIAnnPep2[,1]),]
+
+DIAnnPep3<-data.frame(DIAnnPep2[,order(names(DIAnnPep2))])
+
+DIAnnPep4<-c(DIAnnPep3[,1])
+
+for (i in 2:26) {
+DIAnnPep4<-c(DIAnnPep4,DIAnnPep3[,i])
+}
+
+DIAnnPep5<-data.frame(DIAnnPep4)
+
+
+names(DIAnnPep5)<-c("DIAnn")
+
+SpecPep<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+SpecPep2<-data.frame(SpecPep[c(which(SpecPep$peptide %in% peptide2)),])
+
+SpecPep2$peptide<-factor(SpecPep2$peptide,levels=peptide2)
+
+SpecPep2<-SpecPep2[order(SpecPep2[,1]),]
+
+SpecPep3<-data.frame(SpecPep2[,order(names(SpecPep2))])
+
+SpecPep4<-c(SpecPep3[,1])
+
+for (i in 2:26) {
+  
+  
+  SpecPep4<-c(SpecPep4,SpecPep3[,i])
+  
+
+}
+
+SpecPep5<-data.frame(SpecPep4)
+
+
+
+
+names(SpecPep5)<-c("Spec")
+
+EncyoPep<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+EncyoPep2<-data.frame(EncyoPep[c(which(EncyoPep$peptide %in% peptide2)),])
+
+EncyoPep2$peptide<-factor(EncyoPep2$peptide,levels=peptide2)
+
+EncyoPep2<-EncyoPep2[order(EncyoPep2[,1]),]
+
+EncyoPep3<-data.frame(EncyoPep2[,order(names(EncyoPep2))])
+
+EncyoPep4<-c(EncyoPep3[,1])
+
+for (i in 2:26) {
+  EncyoPep4<-c(EncyoPep4,EncyoPep3[,i])
+}
+EncyoPep5<-data.frame(EncyoPep4)
+names(EncyoPep5)<-c("Encyo")
+
+OpenswathPep<-read.table("05_peptide_matrix/part_ave/Openswath_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+OpenswathPep2<-data.frame(OpenswathPep[c(which(OpenswathPep$peptide %in% peptide2)),])
+
+OpenswathPep2<-OpenswathPep2[,-2]
+
+OpenswathPep2<-aggregate(OpenswathPep2[,colnames(OpenswathPep2)[2:ncol(OpenswathPep2)]],by=list(OpenswathPep2$peptide_group_label),mean,na.rm= TRUE)
+
+OpenswathPep2$Group.1<-factor(OpenswathPep2$Group.1,levels=peptide2)
+
+OpenswathPep2<-OpenswathPep2[order(OpenswathPep2[,1]),]
+
+OpenswathPep3<-data.frame(OpenswathPep2[,order(names(OpenswathPep2))])
+
+OpenswathPep4<-c(OpenswathPep3[,1])
+
+for (i in 2:26) {
+  OpenswathPep4<-c(OpenswathPep4,OpenswathPep3[,i])
+}
+OpenswathPep5<-data.frame(OpenswathPep4)
+names(OpenswathPep5)<-c("Openswath")
+
+############4
+peptide_scatter<-data.frame(DIAnnPep5,SpecPep5,EncyoPep5, OpenswathPep5)
+
+write.table(peptide_scatter,"12_matrix_analyze/peptide_scatter.txt",sep = "\t",row.names = F)
+
+
+library(corrplot)
+library(readr)
+library(RColorBrewer)
+
+c(brewer.pal(8,"Accent")[1:7])
+
+df1 <- data.frame(peptide_scatter)
+nrow(df1)
+ncol(df1) #30
+flag <- apply(is.na(df1),1,sum)
+df2<-df1[which(flag < ncol(df1)*1),]
+
+res1<-cor(df2[1:4], df2[1:4], use = "pairwise.complete.obs")
+
+pdf("12_matrix_analyze/peptide_corrplot_4software_pearson.pdf")
+
+
+corrplot (res1,method="ellipse",tl.col = "black",tl.srt = 0,tl.cex=1,type = "upper",shade.lwd = 10,addgrid.col="white",col =c(brewer.pal(11,"RdYlGn")[1:9]),addCoef.col = "black",diag = FALSE)
+
+
+
+dev.off()
+
+
+
+
+```
