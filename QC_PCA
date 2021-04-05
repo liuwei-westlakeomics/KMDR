@@ -1,0 +1,675 @@
+```{r QC--PCA}
+
+rm(list=ls())
+library(ggplot2)
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+DIAnn2<-data.frame(DIAnn[,c(grep("_repB",names(DIAnn)))])
+
+names1<-c((gsub("_repB","",names(DIAnn2))),names(DIAnn2))
+
+
+DIAnn3<-data.frame(DIAnn[,c(which(names(DIAnn)%in% names1))])
+
+a<-substr(names(DIAnn3),25,40)
+names(DIAnn3)<-a
+DIAnn4<-data.frame(names(DIAnn3),t(DIAnn3))
+DIAnn5<-DIAnn4[order(DIAnn4[,1]),-1]
+DIAnn6<-data.frame(t(DIAnn5))
+
+d1 <- data.frame(2^(DIAnn6[,]))
+
+
+d2 <- data.frame((DIAnn6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/DIAnn_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(DIAnn[,-1])
+
+list2<-gsub("_repB","",list)
+
+DIAnn7<-data.frame(list2,t(2^DIAnn[,-1]))
+
+DIAnn8<-aggregate(DIAnn7[,colnames(DIAnn7)[2:ncol(DIAnn7)]],by=list(DIAnn7$list2),mean,na.rm= TRUE)
+
+DIAnn9<-DIAnn8[order(DIAnn8[,1]),]
+
+
+
+df1<-data.frame(t(DIAnn9[,-1]))
+
+names(df1)<-c(as.matrix(DIAnn9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/DIAnn_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+write.table(a,"13_QC/DIAnn_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(DIAnn7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+DIAnn10<-data.frame(label,DIAnn7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(DIAnn10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/DIAnn_PCA_allProt.pdf",height = 6,width = 6)
+
+
+rm(list=ls())
+library(ggplot2)
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Spec2<-data.frame(Spec[,c(grep("_repB",names(Spec)))])
+
+names1<-c((gsub("_repB","",names(Spec2))),names(Spec2))
+
+
+Spec3<-data.frame(Spec[,c(which(names(Spec)%in% names1))])
+
+a<-substr(names(Spec3),25,40)
+names(Spec3)<-a
+Spec4<-data.frame(names(Spec3),t(Spec3))
+Spec5<-Spec4[order(Spec4[,1]),-1]
+Spec6<-data.frame(t(Spec5))
+
+d1 <- data.frame(2^(Spec6[,]))
+
+
+d2 <- data.frame((Spec6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Spec_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Spec[,-1])
+
+list2<-gsub("_repB","",list)
+
+Spec7<-data.frame(list2,t(2^Spec[,-1]))
+
+Spec8<-aggregate(Spec7[,colnames(Spec7)[2:ncol(Spec7)]],by=list(Spec7$list2),mean,na.rm= TRUE)
+
+Spec9<-Spec8[order(Spec8[,1]),]
+
+
+
+df1<-data.frame(t(Spec9[,-1]))
+
+names(df1)<-c(as.matrix(Spec9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/Spec_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+
+write.table(a,"13_QC/Spec_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(Spec7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+Spec10<-data.frame(label,Spec7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(Spec10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/Spec_PCA_allProt.pdf",height = 6,width = 6)
+
+
+
+
+rm(list=ls())
+library(ggplot2)
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Encyo2<-data.frame(Encyo[,c(grep("_repB",names(Encyo)))])
+
+names1<-c((gsub("_repB","",names(Encyo2))),names(Encyo2))
+
+
+Encyo3<-data.frame(Encyo[,c(which(names(Encyo)%in% names1))])
+
+a<-substr(names(Encyo3),25,40)
+names(Encyo3)<-a
+Encyo4<-data.frame(names(Encyo3),t(Encyo3))
+Encyo5<-Encyo4[order(Encyo4[,1]),-1]
+Encyo6<-data.frame(t(Encyo5))
+
+d1 <- data.frame(2^(Encyo6[,]))
+
+
+d2 <- data.frame((Encyo6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Encyo_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Encyo[,-1])
+
+list2<-gsub("_repB","",list)
+
+Encyo7<-data.frame(list2,t(2^Encyo[,-1]))
+
+Encyo8<-aggregate(Encyo7[,colnames(Encyo7)[2:ncol(Encyo7)]],by=list(Encyo7$list2),mean,na.rm= TRUE)
+
+Encyo9<-Encyo8[order(Encyo8[,1]),]
+
+
+
+df1<-data.frame(t(Encyo9[,-1]))
+
+names(df1)<-c(as.matrix(Encyo9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/Encyo_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+write.table(a,"13_QC/Encyo_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(Encyo7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+Encyo10<-data.frame(label,Encyo7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(Encyo10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/Encyo_PCA_allProt.pdf",height = 6,width = 6)
+
+
+
+rm(list=ls())
+library(ggplot2)
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Openswath2<-data.frame(Openswath[,c(grep("_repB",names(Openswath)))])
+
+names1<-c((gsub("_repB","",names(Openswath2))),names(Openswath2))
+
+
+Openswath3<-data.frame(Openswath[,c(which(names(Openswath)%in% names1))])
+
+a<-substr(names(Openswath3),25,40)
+names(Openswath3)<-a
+Openswath4<-data.frame(names(Openswath3),t(Openswath3))
+Openswath5<-Openswath4[order(Openswath4[,1]),-1]
+Openswath6<-data.frame(t(Openswath5))
+
+d1 <- data.frame(2^(Openswath6[,]))
+
+
+d2 <- data.frame((Openswath6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Openswath_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Openswath[,-1])
+
+list2<-gsub("_repB","",list)
+
+Openswath7<-data.frame(list2,t(2^Openswath[,-1]))
+
+Openswath8<-aggregate(Openswath7[,colnames(Openswath7)[2:ncol(Openswath7)]],by=list(Openswath7$list2),mean,na.rm= TRUE)
+
+Openswath9<-Openswath8[order(Openswath8[,1]),]
+
+
+
+df1<-data.frame(t(Openswath9[,-1]))
+
+names(df1)<-c(as.matrix(Openswath9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/Openswath_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+write.table(a,"13_QC/Openswath_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(Openswath7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+Openswath10<-data.frame(label,Openswath7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(Openswath10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/Openswath_PCA_allProt.pdf",height = 6,width = 6)
+
+
+```
