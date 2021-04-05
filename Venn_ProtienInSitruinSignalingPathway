@@ -1,0 +1,114 @@
+
+```{r venn_protien-sirtuin}
+
+
+rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+protein<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep = "\t",header = T)
+
+Spec1<-c(as.matrix(  protein[which(protein$Spec_ima_sirtuin==1),1]))
+DIAnn1<-c(as.matrix(  protein[which(protein$DIAnn_ima_sirtuin==1),1]))
+Openswath1<-c(as.matrix(  protein[which(protein$Openswath_ima_sirtuin==1),1]))
+Encyo1<-c(as.matrix(  protein[which(protein$Encyo_ima_sirtuin==1),1]))
+
+
+df<-cbind(Spec1,DIAnn1,Encyo1,Openswath1)
+
+
+
+
+
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+cex = 1.5, #每个区域label名称的大小
+fontfamily = "serif", #字体
+fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+cat.cex = 1.5, #每个分类名称大小
+cat.pos = 0,#
+cat.dist = 0.07, #
+cat.fontfamily = "serif",#分类字体
+rotation.degree = 270,  #旋转角度
+margin = 0.2#在网格单元中给出图周围空白量的编号
+)
+
+write.csv(df,"15_Sirtuin/Sirtuin_ima_overlap.csv")
+pdf("15_Sirtuin/Sirtuin_ima_overlap.pdf")
+
+grid.draw(venn.plot)
+
+
+dev.off()
+
+ rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+protein<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep = "\t",header = T)
+
+Spec1<-c(as.matrix(  protein[which(protein$Spec_adr_sirtuin==1),1]))
+DIAnn1<-c(as.matrix(  protein[which(protein$DIAnn_adr_sirtuin==1),1]))
+Openswath1<-c(as.matrix(  protein[which(protein$Openswath_adr_sirtuin==1),1]))
+Encyo1<-c(as.matrix(  protein[which(protein$Encyo_adr_sirtuin==1),1]))
+
+df<-cbind(Spec1,DIAnn1,Encyo1,Openswath1)
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+cex = 1.5, #每个区域label名称的大小
+fontfamily = "serif", #字体
+fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+cat.cex = 1.5, #每个分类名称大小
+cat.pos = 0,#
+cat.dist = 0.07, #
+cat.fontfamily = "serif",#分类字体
+rotation.degree = 270,  #旋转角度
+margin = 0.2#在网格单元中给出图周围空白量的编号
+
+
+)
+write.csv(df,"15_Sirtuin/Sirtuin_adr_overlap.csv")
+pdf("15_Sirtuin/Sirtuin_adr_overlap.pdf")
+
+grid.draw(venn.plot)
+dev.off()
+
+```
+
+
