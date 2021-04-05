@@ -1,0 +1,112 @@
+
+```{r avergae 4 parts#}
+###avergae 4 parts#
+rm(list = ls())
+
+DIAnn<-read.table("05_peptide_matrix/DIAnn_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("05_peptide_matrix/EncyclopeDIA__KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("05_peptide_matrix/Spec_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("05_peptide_matrix/Openswath_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnn2<-data.frame(names(DIAnn[,-c(1:2)]),t(DIAnn[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", DIAnn2$names.DIAnn....c.1.2...))
+
+
+
+DIAnn3<-data.frame(list,DIAnn2[,-1])
+
+
+DIAnn4<-aggregate(DIAnn3[,colnames(DIAnn3)[2:ncol(DIAnn3)]],by=list(DIAnn3$list),mean,na.rm= TRUE)
+
+
+DIAnn5<-data.frame(DIAnn4[,-1],row.names = DIAnn4$Group.1)
+
+
+DIAnn6<-data.frame(DIAnn[,c(1:2)],t(DIAnn5))
+
+
+write.table(DIAnn6,"05_peptide_matrix/DIAnn_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+
+############NG
+Encyo2<-data.frame(names(Encyo[,-c(1:2)]),t(Encyo[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", Encyo2$names.Encyo....c.1.2...))
+
+
+
+Encyo3<-data.frame(list,Encyo2[,-1])
+
+
+Encyo4<-aggregate(Encyo3[,colnames(Encyo3)[2:ncol(Encyo3)]],by=list(Encyo3$list),mean,na.rm= TRUE)
+
+
+Encyo5<-data.frame(Encyo4[,-1],row.names = Encyo4$Group.1)
+
+
+Encyo6<-data.frame(Encyo[,c(1:2)],t(Encyo5))
+
+
+write.table(Encyo6,"05_peptide_matrix/Encyo_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+
+
+
+
+#################2
+
+
+Spec2<-data.frame(names(Spec[,-c(1:2)]),t(Spec[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", Spec2$names.Spec....c.1.2...))
+
+
+
+Spec3<-data.frame(list,Spec2[,-1])
+
+
+Spec4<-aggregate(Spec3[,colnames(Spec3)[2:ncol(Spec3)]],by=list(Spec3$list),mean,na.rm= TRUE)
+
+
+Spec5<-data.frame(Spec4[,-1],row.names = Spec4$Group.1)
+
+
+Spec6<-data.frame(Spec[,c(1:2)],t(Spec5))
+
+
+write.table(Spec6,"05_peptide_matrix/Spec_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+
+
+##############2
+
+
+Openswath2<-data.frame(names(Openswath[,-c(1:2)]),t(Openswath[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", Openswath2$names.Openswath....c.1.2...))
+
+
+
+Openswath3<-data.frame(list,Openswath2[,-1])
+
+
+Openswath4<-aggregate(Openswath3[,colnames(Openswath3)[2:ncol(Openswath3)]],by=list(Openswath3$list),mean,na.rm= TRUE)
+
+
+Openswath5<-data.frame(Openswath4[,-1],row.names = Openswath4$Group.1)
+
+
+Openswath6<-data.frame(Openswath[,c(1:2)],t(Openswath5))
+
+
+write.table(Openswath6,"05_peptide_matrix/Openswath_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+######2
+
+
+```
+
