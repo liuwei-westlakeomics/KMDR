@@ -1,0 +1,110 @@
+```{r venn_protein_all}
+ rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+DIAnn<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+DIAnn1<-c(as.matrix(DIAnn$peptide))
+
+Encyo<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+Encyo1<-c(as.matrix(Encyo$peptide))
+
+Spec<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+Spec1<-c(as.matrix(Spec$peptide))
+
+Openswath<-read.table("05_peptide_matrix/part_ave/Openswath_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+Openswath1<-c(as.matrix(Openswath$peptide))
+
+
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn1 = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+cex = 1.5, #每个区域label名称的大小
+fontfamily = "serif", #字体
+fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+cat.cex = 1.5, #每个分类名称大小
+cat.pos = 0,#
+cat.dist = 0.07, #
+cat.fontfamily = "serif",#分类字体
+rotation.degree = 270,  #旋转角度
+margin = 0.2#在网格单元中给出图周围空白量的编号
+
+
+)
+pdf("12_matrix_analyze/peptide_venn_4software.pdf")
+
+grid.draw(venn.plot)
+dev.off()
+
+ rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+DIAnn1<-c(as.matrix(DIAnn$protein))
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+Encyo1<-c(as.matrix(Encyo$protein))
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+Spec1<-c(as.matrix(Spec$protein))
+
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+Openswath1<-c(as.matrix(Openswath$protein))
+
+
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn1 = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+ cex = 1.5, #每个区域label名称的大小
+ fontfamily = "serif", #字体
+ fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+ cat.cex = 1.5, #每个分类名称大小
+ cat.pos = 0,#
+ cat.dist = 0.07, #
+ cat.fontfamily = "serif",#分类字体
+ rotation.degree = 270,  #旋转角度
+ margin = 0.2,#在网格单元中给出图周围空白量的编号
+imagetype = "svg"
+)
+pdf("12_matrix_analyze/protein_venn_4software.pdf",width=12,height=8)
+
+grid.draw(venn.plot)
+dev.off()
+
+
+```
