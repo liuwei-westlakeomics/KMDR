@@ -1,0 +1,39 @@
+```{r Proteotypic}
+
+rm(list = ls())
+
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+DIAnn2<-DIAnn[-c((grep(pattern=c(";|:|CON_"),DIAnn[,1]))),]
+
+write.table(DIAnn2,"06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+Spec2<-Spec[-c((grep(pattern=c(";|:|CON_"),Spec[,1]))),]
+
+write.table(Spec2,"06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+
+
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+Encyo2<-Encyo[-c((grep(pattern=c(";|:|CON_"),Encyo[,1]))),]
+
+write.table(Encyo2,"06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+Openswath<-read.table("06_protein_matrix/protein_group/Openswath_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+Openswath2<-Openswath[-c((grep(pattern=c(";|:|CON_"),Openswath[,1]))),]
+Openswath3<-Openswath2[c((grep(pattern=c("1/sp"),Openswath2[,1]))),]
+
+write.table(Openswath3,"06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+
+```
