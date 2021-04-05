@@ -1,0 +1,57 @@
+
+###Peptide
+rm(list = ls())
+
+DIAnn<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("05_peptide_matrix/part_ave/Openswath_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnnNA<-mean(is.na(DIAnn[,-c(1:2)]))  
+
+EncyoNA<-mean(is.na(Encyo[,-c(1:2)]))
+
+SpecNA<-mean(is.na(Spec[,-c(1:2)]))  
+
+OpenswathNA<-mean(is.na(Openswath[,-c(1:2)]))
+
+####protein
+rm(list = ls())
+
+DIAnn<-read.table("06_protein_matrix/protein_group/DIAnn_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("06_protein_matrix/protein_group/Encyo_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("06_protein_matrix/protein_group/Spec_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("06_protein_matrix/protein_group/Openswath_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnnNA<-mean(is.na(DIAnn[,-c(1)]))  
+
+EncyoNA<-mean(is.na(Encyo[,-c(1)]))
+
+SpecNA<-mean(is.na(Spec[,-c(1)]))  
+
+OpenswathNA<-mean(is.na(Openswath[,-c(1)]))
+
+####proteptypic
+rm(list = ls())
+
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnnNA<-mean(is.na(DIAnn[,-c(1)]))  
+
+EncyoNA<-mean(is.na(Encyo[,-c(1)]))
+
+SpecNA<-mean(is.na(Spec[,-c(1)]))  
+
+OpenswathNA<-mean(is.na(Openswath[,-c(1)]))
