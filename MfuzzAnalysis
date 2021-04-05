@@ -1,0 +1,1282 @@
+
+```{r Mfuzz anova openswath IMA ADR }
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+write.csv(ima_anova2,"08_mfuzz/Openswath_ima_anvoa.csv",row.names = F)
+
+
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Openswath_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Openswath_ima.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(3,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Openswath_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz openswath ADR
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/Openswath_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Openswath_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Openswath_adr.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(2,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Openswath_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz openswath ADR
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/Openswath_adr_anvoa.csv",row.names = F)
+
+```
+
+
+
+```{r  Mfuzz Encyo IMA ADR}
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Encyo_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Encyo_ima.csv",sep = ""))
+}
+
+proteinInCluster(4,1,4)
+proteinInCluster(3,4,1)
+proteinInCluster(2,4,1)
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Encyo_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Encyo ADR
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/Encyo_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Encyo_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Encyo_adr.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(4,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Encyo_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Encyo ADR
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/Encyo_adr_anvoa.csv",row.names = F)
+```
+
+
+```{r  Mfuzz DIAnn IMA ADR}
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/DIAnn_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","DIAnn_ima.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+
+proteinInCluster(2,4,1)
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'DIAnn_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz DIAnn ADR
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/DIAnn_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/DIAnn_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","DIAnn_adr.csv",sep = ""))
+}
+proteinInCluster(1,1,4)
+proteinInCluster(4,1,4)
+proteinInCluster(2,4,1)
+proteinInCluster(3,4,1)
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'DIAnn_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz DIAnn ADR
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/DIAnn_adr_anvoa.csv",row.names = F)
+```
+
+
+```{r  Mfuzz Spec IMA ADR}
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Spec_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Spec_ima.csv",sep = ""))
+}
+
+proteinInCluster(2,1,4)
+proteinInCluster(3,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Spec_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Spec ADR
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/Spec_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Spec_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Spec_adr.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(2,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Spec_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Spec ADR
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/Spec_adr_anvoa.csv",row.names = F)
+```
+
+
