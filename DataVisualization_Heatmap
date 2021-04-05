@@ -1,0 +1,571 @@
+
+```{r heatmap_sirtuin_4_software}
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Openswath_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Openswath_ima",".pdf"),main = paste0("Heatmap for Openswath_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Openswath_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Openswath_adr",".pdf"),main = paste0("Heatmap for Openswath_adr "))
+######
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$DIAnn_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/DIAnn_ima",".pdf"),main = paste0("Heatmap for DIAnn_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$DIAnn_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/DIAnn_adr",".pdf"),main = paste0("Heatmap for DIAnn_adr "))
+```
+
+
+```{r heatmap_sirtuin_4_software}
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Encyo_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Encyo_ima",".pdf"),main = paste0("Heatmap for Encyo_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Encyo_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Encyo_adr",".pdf"),main = paste0("Heatmap for Encyo_adr "))
+######
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Spec_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Spec_ima",".pdf"),main = paste0("Heatmap for Spec_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Spec_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Spec_adr",".pdf"),main = paste0("Heatmap for Spec_adr "))
+```
