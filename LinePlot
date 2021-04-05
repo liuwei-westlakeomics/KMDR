@@ -1,0 +1,123 @@
+```{r keyprotein lineplot}
+
+rm(list=ls())
+library(ggplot2)
+library(Rmisc)
+library(stringr)
+library(reshape2)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+
+Openswath <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+Openswath2<-data.frame(Openswath[which(Openswath$protein%in% protein$elements),])
+row.names(Openswath2)<-Openswath2$protein
+Openswath3<-data.frame("Openswath",t(Openswath2[,-1]))
+Openswath4<-data.frame(str_split_fixed(row.names(Openswath3),"_",7)[,5],Openswath3)
+names(Openswath4)<-c("group","software",names(Openswath4[,-c(1:2)]))
+
+
+DIAnn <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+DIAnn2<-data.frame(DIAnn[which(DIAnn$protein%in% protein$elements),])
+row.names(DIAnn2)<-DIAnn2$protein
+DIAnn3<-data.frame("DIAnn",t(DIAnn2[,-1]))
+DIAnn4<-data.frame(str_split_fixed(row.names(DIAnn3),"_",7)[,5],DIAnn3)
+names(DIAnn4)<-c("group","software",names(DIAnn4[,-c(1:2)]))
+
+Spec <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+Spec2<-data.frame(Spec[which(Spec$protein%in% protein$elements),])
+row.names(Spec2)<-Spec2$protein
+Spec3<-data.frame("Spec",t(Spec2[,-1]))
+Spec4<-data.frame(str_split_fixed(row.names(Spec3),"_",7)[,5],Spec3)
+names(Spec4)<-c("group","software",names(Spec4[,-c(1:2)]))
+
+Encyo <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+Encyo2<-data.frame(Encyo[which(Encyo$protein%in% protein$elements),])
+row.names(Encyo2)<-Encyo2$protein
+Encyo3<-data.frame("Encyo",t(Encyo2[,-1]))
+Encyo4<-data.frame(str_split_fixed(row.names(Encyo3),"_",7)[,5],Encyo3)
+names(Encyo4)<-c("group","software",names(Encyo4[,-c(1:2)]))
+df<-rbind(Openswath4,DIAnn4,Spec4,Encyo4)
+
+df1<-df[-c(1,2)]
+
+df2<-data.frame(apply(df1,2,function(X) sum(is.na(X)/104)))
+
+names(df2)<-("NAratio")
+
+df3<-data.frame(df1[,-(which(df2$NAratio>0.7))])
+
+df4<-data.frame(df[,c(1,2)],df3)
+
+dfIMA<-df[which(df$group%in%c("K","I1","I2","I3")),]
+dfIMA$group<-gsub("I","",dfIMA$group)
+dfIMA$group<-gsub("K","0",dfIMA$group)
+dfIMA$group<-as.numeric(dfIMA$group)
+
+
+myNormalize <- function (target) {
+    (target - min(target,na.rm = T))/(max(target,na.rm = T) - min(target,na.rm = T))
+}
+
+dfIMA_normalize_Openswath<-data.frame(dfIMA[which(dfIMA$software=="Openswath"),1:2],apply(dfIMA[which(dfIMA$software=="Openswath"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize_DIAnn<-data.frame(dfIMA[which(dfIMA$software=="DIAnn"),1:2],apply(dfIMA[which(dfIMA$software=="DIAnn"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize_Spec<-data.frame(dfIMA[which(dfIMA$software=="Spec"),1:2],apply(dfIMA[which(dfIMA$software=="Spec"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize_Encyo<-data.frame(dfIMA[which(dfIMA$software=="Encyo"),1:2],apply(dfIMA[which(dfIMA$software=="Encyo"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize<-rbind(dfIMA_normalize_Openswath,dfIMA_normalize_DIAnn,dfIMA_normalize_Spec,dfIMA_normalize_Encyo)
+
+for (i in 3:ncol(dfIMA_normalize)) {
+tg <- dfIMA_normalize[,c(1,2,i)]
+names(tg)<-c("IMA","software","protein")
+tgc <- summarySE(tg, measurevar="protein", groupvars=c("software","IMA"))
+anova<-data.frame("software","p")
+names(anova)<-c("software","p")
+anova0<-anova[-1,]
+
+
+ for(a in c("DIAnn","Encyo", "Openswath","Spec")){
+  
+     tg1<- tg[which(tg$software== paste0(a)),]
+        tg1[is.na(tg1)]<-0
+      b <-(summary(aov(tg1$protein ~ tg1$IMA, tg1))[[1]])$`Pr(>F)`[1]
+      c<-signif(b,2)
+      anova2<-anova[-1,]
+      anova2[1,1]<-paste0(a)
+      anova2[1,2]<-c
+
+      anova0<-rbind(anova0,anova2)
+}
+
+
+plot<-ggplot(tgc, aes(x=IMA, y=protein, colour=software))+   ggtitle(paste0(names(dfIMA_normalize)[i]))+
+    geom_errorbar(aes(ymin=protein-se, ymax=protein+se), width=.1) +
+    geom_line() +
+    geom_point()+
+  ylim(0,1)+
+    scale_color_manual(values=c("#7E1B1E","#EB9C21","#6286BE","#B2D9AC"))+
+    annotate("text", label = paste("p=",anova0[1,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*1, colour = "#7E1B1E")+
+    annotate("text", label = paste("p=",anova0[2,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*0.9,colour = "#EB9C21")+
+    annotate("text", label = paste("p=",anova0[3,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*0.8,colour = "#6286BE")+
+    annotate("text", label = paste("p=",anova0[4,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*0.7,colour = "#B2D9AC")
+
+p<-plot+ theme(legend.direction = 'horizontal',legend.position = 'top',legend.text = element_text(size = 15,color = "black"), legend.title = element_text(size=15,color="black") ,panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black"), axis.ticks.length = unit(6, "pt"),axis.text = element_text(size=15,color="black")) 
+ggsave(filename  = paste0("17_line_plot/IMA/IMA","_",names(dfIMA_normalize)[i],".pdf"),plot=p,device = NULL,width = 6,height = 6)
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
