@@ -1,0 +1,71 @@
+
+```{r bubble_plot}
+
+library(GOplot)
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(gridExtra)
+library(ggrepel)
+library(plotly)
+library(ggplot2)
+require(stringr)
+Spec_adr2$rank<-rank(-(Spec_adr2$X.log.p.value.),)
+Encyo_adr2$rank<-rank(-(Encyo_adr2$X.log.p.value.),)
+DIAnn_adr2$rank<-rank(-(DIAnn_adr2$X.log.p.value.),)
+Openswath_adr2$rank<-rank(-(Openswath_adr2$X.log.p.value.),)
+bubble_adr<-rbind(Spec_adr2,Openswath_adr2,DIAnn_adr2,Encyo_adr2)
+bubble_adr$count<- str_count(bubble_adr$Molecules, "\\,")+1
+# extrafont::loadfonts()
+
+a<-ggplot(bubble_adr, aes(x=z.score, y=X.log.p.value.,size=count, color = model)) +
+  geom_point(alpha=0.7) +
+    # scale_size(range = c(0, 2), name="ratio") +
+    scale_color_viridis(discrete=TRUE)+
+
+    theme(legend.position="right") +
+    geom_text_repel(data=bubble_adr %>% filter(rank<6), aes(label=Ingenuity.Canonical.Pathways), size=4 )+
+theme(legend.direction = 'horizontal',legend.position = 'top',legend.text = element_text(size = 15,color = "black"), legend.title = element_text(size=15,color="black") ,panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black"))+ theme(panel.grid =element_blank())+
+  theme(axis.ticks.length =unit(.25,"cm",2))+
+  theme(axis.text = element_text(size = 15,color = "black"))+
+  
+            theme(plot.subtitle=element_text(size=30, hjust=22, color="black"))+
+            theme(axis.title.x=element_text(size=17, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=17, hjust=0.5, color="black"))
+
+ggsave(file="11_goplot/adr_bubble.pdf",plot=a,device=NULL, width=10,height = 8)
+
+
+Spec_ima2$rank<-rank(-(Spec_ima2$X.log.p.value.),)
+Encyo_ima2$rank<-rank(-(Encyo_ima2$X.log.p.value.),)
+DIAnn_ima2$rank<-rank(-(DIAnn_ima2$X.log.p.value.),)
+Openswath_ima2$rank<-rank(-(Openswath_ima2$X.log.p.value.),)
+bubble_ima<-rbind(Spec_ima2,Openswath_ima2,DIAnn_ima2,Encyo_ima2)
+bubble_ima$count<- str_count(bubble_ima$Molecules, "\\,")+1
+# extrafont::loadfonts()
+
+a<-ggplot(bubble_ima, aes(x=z.score, y=X.log.p.value.,size=count, color = model)) +
+  geom_point(alpha=0.7) +
+    # scale_size(range = c(0, 2), name="ratio") +
+    scale_color_viridis(discrete=TRUE)+
+
+    theme(legend.position="right") +
+    geom_text_repel(data=bubble_ima %>% filter(rank<6), aes(label=Ingenuity.Canonical.Pathways), size=4 )+
+theme(legend.direction = 'horizontal',legend.position = 'top',legend.text = element_text(size = 15,color = "black"), legend.title = element_text(size=15,color="black") ,panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black"))+ theme(panel.grid =element_blank())+
+  theme(axis.ticks.length =unit(.25,"cm",2))+
+  theme(axis.text = element_text(size = 15,color = "black"))+
+  
+            theme(plot.subtitle=element_text(size=30, hjust=22, color="black"))+
+            theme(axis.title.x=element_text(size=17, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=17, hjust=0.5, color="black"))
+
+ggsave(file="11_goplot/ima_bubble.pdf",plot=a,device=NULL, width=10,height = 8)
+
+
+
+
+
+
+```
+
+
