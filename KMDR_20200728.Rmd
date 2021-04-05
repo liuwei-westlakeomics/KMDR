@@ -1,0 +1,4964 @@
+---
+title: "KMDR_20200107"
+author: "liuwe"
+date: "2020年1月7日"
+output: html_document
+---
+
+```{r library}
+library(readr)
+X2020015_liuwei_K562_37raw <- read_delim("C:/Users/Liu Wei/OneDrive - 西湖大学/KMDR2020/16_library/2020015_liuwei_K562_37raw.xls", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+View(X2020015_liuwei_K562_37raw)
+
+K562_pfind_library_37raw <- read_delim("C:/Users/Liu Wei/OneDrive - 西湖大学/KMDR2020/16_library/K562_pfind__library_37raw.csv", 
+    "\t", escape_double = FALSE, trim_ws = TRUE)
+View(K562_pfind_library_37raw)
+
+
+library_spec<-X2020015_liuwei_K562_37raw[,c(6,24,25)]
+
+library_os<-K562_pfind_library_37raw[c(which(K562_pfind_library_37raw$decoy=="0")),c(9,10)]
+
+library_spec2<-unique(library_spec)
+
+library_os2<-unique(library_os)
+
+
+write.csv(library_spec2,"16_library/library_spec.csv")
+write.csv(library_os2,"16_library/library_os.csv")
+
+```
+
+
+
+```{r DIAnn}
+##DIAnn##
+rm(list = ls())
+df <- read.delim("DIANN/output/DIAnn_KMDR.tsv")
+bb <- which(df$Precursor.Quantity==0)
+df <- df[-bb,]
+df1 <- data.frame(sample=df$File.Name,pep=df$Stripped.Sequence,prot=df$Protein.Ids,intesity=df$Precursor.Quantity)
+
+library(reshape2)
+df2 <- dcast(df1,pep+prot~sample,value.var = 'intesity',mean)
+sum_dia <- apply(df2,2,function(x) sum(!is.na(x)))
+write.table(df2,file="DIANN/output/DIAnn_KMDR_peptide_matrix.txt",sep="\t",col.names = T,row.names = F,quote = F)
+
+#df <- df[-which(df$Protein.Ids==""),]
+df1 <- data.frame(sample=df$File.Name,prot=df$Protein.Ids,intesity=df$PG.Quantity)
+df1 <- unique(df1)
+library(reshape2)
+df2 <- dcast(df1,prot~sample,value.var = 'intesity',mean)
+sum_dia <- apply(df2,2,function(x) sum(!is.na(x)))
+write.table(df2,file="DIANN/output/DIAnn_KMDR_protein_matrix.txt",sep="\t",col.names = T,row.names = F,quote = F)
+```
+
+
+```{r openswth}
+###openswth##
+
+rm(list = ls())
+
+
+Openswath_KMDR_peptide_matrix <- read.delim("F:/KMDR/2020/05_peptide_matrix/Openswath_KMDR_peptide_matrix.txt", header=TRUE)
+
+
+
+for (i in 1:nrow(Openswath_KMDR_peptide_matrix)) {
+  
+  
+  Openswath_KMDR_peptide_matrix[i,108]<-sum(Openswath_KMDR_peptide_matrix[i,c(4:107)],na.rm = T)
+  
+}
+
+
+Openswath_KMDR_peptide_matrix2<-data.frame(Openswath_KMDR_peptide_matrix[-c(which(Openswath_KMDR_peptide_matrix$V108=="0")),-c(3,108)])
+
+
+
+write.table(Openswath_KMDR_peptide_matrix2,"Openswath_KMDR_peptide_matrix2.txt",sep = "\t",row.names=F)
+
+
+```
+
+
+```{r EncyopeDIA}
+###EncyopeDIA#
+
+rm(list = ls())
+
+df<-read.table("05_peptide_matrix/EncyclopeDIA__KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+df[df=="0"]<-NA
+
+
+write.table(df,"05_peptide_matrix/EncyclopeDIA__KMDR_peptide_matrix2.txt",sep = "\t",row.names=F)
+
+
+
+
+
+```
+
+
+
+```{r avergae 4 parts#}
+###avergae 4 parts#
+rm(list = ls())
+
+DIAnn<-read.table("05_peptide_matrix/DIAnn_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("05_peptide_matrix/EncyclopeDIA__KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("05_peptide_matrix/Spec_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("05_peptide_matrix/Openswath_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnn2<-data.frame(names(DIAnn[,-c(1:2)]),t(DIAnn[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", DIAnn2$names.DIAnn....c.1.2...))
+
+
+
+DIAnn3<-data.frame(list,DIAnn2[,-1])
+
+
+DIAnn4<-aggregate(DIAnn3[,colnames(DIAnn3)[2:ncol(DIAnn3)]],by=list(DIAnn3$list),mean,na.rm= TRUE)
+
+
+DIAnn5<-data.frame(DIAnn4[,-1],row.names = DIAnn4$Group.1)
+
+
+DIAnn6<-data.frame(DIAnn[,c(1:2)],t(DIAnn5))
+
+
+write.table(DIAnn6,"05_peptide_matrix/DIAnn_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+
+############NG
+Encyo2<-data.frame(names(Encyo[,-c(1:2)]),t(Encyo[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", Encyo2$names.Encyo....c.1.2...))
+
+
+
+Encyo3<-data.frame(list,Encyo2[,-1])
+
+
+Encyo4<-aggregate(Encyo3[,colnames(Encyo3)[2:ncol(Encyo3)]],by=list(Encyo3$list),mean,na.rm= TRUE)
+
+
+Encyo5<-data.frame(Encyo4[,-1],row.names = Encyo4$Group.1)
+
+
+Encyo6<-data.frame(Encyo[,c(1:2)],t(Encyo5))
+
+
+write.table(Encyo6,"05_peptide_matrix/Encyo_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+
+
+
+
+#################2
+
+
+Spec2<-data.frame(names(Spec[,-c(1:2)]),t(Spec[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", Spec2$names.Spec....c.1.2...))
+
+
+
+Spec3<-data.frame(list,Spec2[,-1])
+
+
+Spec4<-aggregate(Spec3[,colnames(Spec3)[2:ncol(Spec3)]],by=list(Spec3$list),mean,na.rm= TRUE)
+
+
+Spec5<-data.frame(Spec4[,-1],row.names = Spec4$Group.1)
+
+
+Spec6<-data.frame(Spec[,c(1:2)],t(Spec5))
+
+
+write.table(Spec6,"05_peptide_matrix/Spec_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+
+
+##############2
+
+
+Openswath2<-data.frame(names(Openswath[,-c(1:2)]),t(Openswath[,-c(1:2)]))
+
+
+list<-c(gsub("_part1|_part2|_part3|_part4","", Openswath2$names.Openswath....c.1.2...))
+
+
+
+Openswath3<-data.frame(list,Openswath2[,-1])
+
+
+Openswath4<-aggregate(Openswath3[,colnames(Openswath3)[2:ncol(Openswath3)]],by=list(Openswath3$list),mean,na.rm= TRUE)
+
+
+Openswath5<-data.frame(Openswath4[,-1],row.names = Openswath4$Group.1)
+
+
+Openswath6<-data.frame(Openswath[,c(1:2)],t(Openswath5))
+
+
+write.table(Openswath6,"05_peptide_matrix/Openswath_part_ave_KMDR_peptide_matrix.txt",sep = "\t",row.names = F)
+######2
+
+
+```
+
+
+
+```{r matrix missing value}
+
+
+
+###Peptide
+rm(list = ls())
+
+DIAnn<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("05_peptide_matrix/part_ave/Openswath_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnnNA<-mean(is.na(DIAnn[,-c(1:2)]))  
+
+EncyoNA<-mean(is.na(Encyo[,-c(1:2)]))
+
+SpecNA<-mean(is.na(Spec[,-c(1:2)]))  
+
+OpenswathNA<-mean(is.na(Openswath[,-c(1:2)]))
+
+####protein
+rm(list = ls())
+
+DIAnn<-read.table("06_protein_matrix/protein_group/DIAnn_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("06_protein_matrix/protein_group/Encyo_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("06_protein_matrix/protein_group/Spec_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("06_protein_matrix/protein_group/Openswath_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnnNA<-mean(is.na(DIAnn[,-c(1)]))  
+
+EncyoNA<-mean(is.na(Encyo[,-c(1)]))
+
+SpecNA<-mean(is.na(Spec[,-c(1)]))  
+
+OpenswathNA<-mean(is.na(Openswath[,-c(1)]))
+
+####proteptypic
+rm(list = ls())
+
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+DIAnnNA<-mean(is.na(DIAnn[,-c(1)]))  
+
+EncyoNA<-mean(is.na(Encyo[,-c(1)]))
+
+SpecNA<-mean(is.na(Spec[,-c(1)]))  
+
+OpenswathNA<-mean(is.na(Openswath[,-c(1)]))
+
+
+
+```
+
+```{r Proteotypic}
+
+rm(list = ls())
+
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+DIAnn2<-DIAnn[-c((grep(pattern=c(";|:|CON_"),DIAnn[,1]))),]
+
+write.table(DIAnn2,"06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+Spec2<-Spec[-c((grep(pattern=c(";|:|CON_"),Spec[,1]))),]
+
+write.table(Spec2,"06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+
+
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+Encyo2<-Encyo[-c((grep(pattern=c(";|:|CON_"),Encyo[,1]))),]
+
+write.table(Encyo2,"06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+Openswath<-read.table("06_protein_matrix/protein_group/Openswath_part_ave_KMDR_protein_matrix.txt",header = T,sep = '\t',stringsAsFactors = F)
+
+
+Openswath2<-Openswath[-c((grep(pattern=c(";|:|CON_"),Openswath[,1]))),]
+Openswath3<-Openswath2[c((grep(pattern=c("1/sp"),Openswath2[,1]))),]
+
+write.table(Openswath3,"06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",row.names = F,sep = "\t")
+
+
+```
+
+
+
+```{r Mfuzz anova openswath IMA ADR }
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+write.csv(ima_anova2,"08_mfuzz/Openswath_ima_anvoa.csv",row.names = F)
+
+
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Openswath_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Openswath_ima.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(3,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Openswath_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz openswath ADR
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/Openswath_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Openswath_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Openswath_adr.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(2,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Openswath_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz openswath ADR
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/Openswath_adr_anvoa.csv",row.names = F)
+
+```
+
+
+
+```{r  Mfuzz Encyo IMA ADR}
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Encyo_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Encyo_ima.csv",sep = ""))
+}
+
+proteinInCluster(4,1,4)
+proteinInCluster(3,4,1)
+proteinInCluster(2,4,1)
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Encyo_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Encyo ADR
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/Encyo_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Encyo_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Encyo_adr.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(4,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Encyo_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Encyo ADR
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/Encyo_adr_anvoa.csv",row.names = F)
+```
+
+
+```{r  Mfuzz DIAnn IMA ADR}
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/DIAnn_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","DIAnn_ima.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+
+proteinInCluster(2,4,1)
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'DIAnn_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz DIAnn ADR
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/DIAnn_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/DIAnn_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","DIAnn_adr.csv",sep = ""))
+}
+proteinInCluster(1,1,4)
+proteinInCluster(4,1,4)
+proteinInCluster(2,4,1)
+proteinInCluster(3,4,1)
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'DIAnn_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz DIAnn ADR
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/DIAnn_adr_anvoa.csv",row.names = F)
+```
+
+
+```{r  Mfuzz Spec IMA ADR}
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+names(ima_Matrix)<-c("label",as.matrix(names(ima_Matrix[,-1])))
+ima_Matrix2<-ima_Matrix[,-which((apply(ima_Matrix,2,function(x)  sum(is.na(x) )))> nrow(ima_Matrix)*0.25)]
+col<-ncol(ima_Matrix2)
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ ima_anova[c(i-1),2]<-aov
+
+}
+
+names(ima_anova)<-c('protein',"pvalue")
+ima_anova$adjust_pvalue<-p.adjust(ima_anova$pvalue, method="BH")
+ima_anova2<-data.frame(ima_anova[c(which(ima_anova$adjust_pvalue<=0.05)),])
+ima_Matrix3<-ima_Matrix2[,c(names(ima_Matrix2)%in% ima_anova2$protein)]
+ima_Matrix3$label<-ima_Matrix2$label
+# ImaMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(ima_Matrix3[,colnames(ima_Matrix3)[1:ncol(ima_Matrix3)-1]],by=list(ima_Matrix3$label),mean,na.rm= TRUE)
+############ima-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Spec_KMDR_cluster_ima.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Spec_ima.csv",sep = ""))
+}
+
+proteinInCluster(2,1,4)
+proteinInCluster(3,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Spec_ima.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Spec ADR
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############ima-matrix#################################################################1
+ima_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+ima_Matrix2<-data.frame(ima_Matrix[,1],ima_Matrix[,c(which(names(ima_Matrix)%in% prot))])
+col<-ncol(ima_Matrix2)
+names(ima_Matrix2)<-c("label",as.matrix(names(ima_Matrix2[,-1])))
+
+ima_anova<-data.frame(names(ima_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(ima_Matrix2[,i] ~ ima_Matrix2[,1],ima_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(ima_Matrix2[12:14,i],na.rm=T)/mean(ima_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  ima_anova[c(i-1),2]<-aov
+  ima_anova[c(i-1),3]<-fc
+}
+names(ima_anova)<-c('protein',"pvalue","fc")
+write.csv(ima_anova,"08_mfuzz/Spec_ima_anvoa.csv",row.names = F)
+
+###**********##
+
+rm(list=ls())
+dfn <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+dfm<-data.frame(dfn[which(dfn$protein%in% protein$elements),])
+row.names(dfm)<-dfm$protein
+df<-dfm[,-1]
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+}
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+names(adr_Matrix)<-c("label",as.matrix(names(adr_Matrix[,-1])))
+adr_Matrix2<-adr_Matrix[,-which((apply(adr_Matrix,2,function(x)  sum(is.na(x) )))> nrow(adr_Matrix)*0.25)]
+col<-ncol(adr_Matrix2)
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+ adr_anova[c(i-1),2]<-aov
+
+}
+
+names(adr_anova)<-c('protein',"pvalue")
+adr_anova$adjust_pvalue<-p.adjust(adr_anova$pvalue, method="BH")
+adr_anova2<-data.frame(adr_anova[c(which(adr_anova$adjust_pvalue<=0.05)),])
+adr_Matrix3<-adr_Matrix2[,c(names(adr_Matrix2)%in% adr_anova2$protein)]
+adr_Matrix3$label<-adr_Matrix2$label
+# adrMatrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","I1","I2","I3"))),])
+df4<-aggregate(adr_Matrix3[,colnames(adr_Matrix3)[1:ncol(adr_Matrix3)-1]],by=list(adr_Matrix3$label),mean,na.rm= TRUE)
+############adr-matrix########################1
+df5<-data.frame(df4[c(4,1,2,3),])
+df6<-data.frame(t(data.frame(df5[,-1],row.names = df5$Group.1)))
+for (i in 1:nrow(df6)) {
+df6[i,5]<-sum(is.na(df6[i,c(1:4)]))
+}
+######################################################1
+df7<-data.frame(df6[c(which(df6$V5%in%c("0"))),-5])###1
+######################################################1
+library(Mfuzz)
+set.seed(2020)
+df3a<-as.matrix(df7)
+df3Ex<- ExpressionSet(assayData = df3a)
+if(interactive()){
+  df3F <- filter.NA(df3Ex)
+  df3F <- fill.NA(df3F)
+  df3F <- standardise(df3F)
+}
+df3F <- filter.NA(df3F)
+m<-mestimate(df3F)
+cselection(df3F,m=m,crange = seq(2,10,1),repeats = 5,visu = T)
+cl <- mfuzz(df3F,c=4,m=m)
+pdf("08_mfuzz/Spec_KMDR_cluster_adr.pdf")
+mfuzz.plot2(df3F, cl=cl,mfrow=c(3,3),centre=TRUE,x11=F,centre.lwd=0.2)#min.mem=0.99
+dev.off()
+###################################1
+
+proteinInCluster <- function(c,hcol,tcol){
+  selectDfName<-c(" ")
+  namesCount<-1
+   for(i in 1:nrow(df7)){
+    if(!is.na(df7[i,hcol]) && !is.na(df7[i,tcol]) && (df7[i,hcol]-df7[i,tcol])>2){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+    else if(is.na(df7[i,hcol]) || is.na(df7[i,tcol])){
+      selectDfName[namesCount]<-rownames(df7[i,])
+      namesCount<-namesCount+1
+    }
+  }
+  #membership value>0.2
+  clustername<-names(cl$cluster[unname(cl$cluster)==c])
+  tmpa<-unname(cl[[4]][clustername,c])>0.2
+  clustername<-clustername[which(tmpa>0.2)]
+  selectCname<-(selectDfName %in% clustername)
+  sameIndex<-which(selectCname>0.2)
+  write.csv(cl[[4]][selectDfName[sameIndex],c],paste("08_mfuzz/",c,"_","Spec_adr.csv",sep = ""))
+}
+
+proteinInCluster(1,1,4)
+proteinInCluster(2,4,1)
+
+
+#########rbind###
+options(scipen = 200)
+
+#########自定义函数################1
+readCSV <- function(dir_dta){
+  file_list <- list.files(path=dir_dta,full.names=T)
+  file_list1<-data.frame(file_list)
+  
+  file_list2<-as.character(file_list1[c(grep(pattern = 'Spec_adr.csv',file_list1[,1])),])
+  varSave_func <- function(x){
+    table_x <- read.csv(file=x)
+  }
+  a<-invisible(lapply(file_list2,FUN=varSave_func))
+  b<-as.data.frame(a[[1]])
+  for (i in 2:length(a)){
+    c<-rbind(b,a[[i]])
+    b <- c
+  }
+  return(b)
+}
+
+##########调用函数
+dir_dta <- "08_mfuzz/"
+result <-readCSV(dir_dta)
+
+##########################################################################################Mfuzz Spec ADR
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+df[is.na(df)]<-min(df[,-1],na.rm = T)
+mfuzz_prot<-result
+df1<-data.frame(2^t(df))
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+############adr-matrix#################################################################1
+adr_Matrix<-data.frame(df3[c(which(df3$df2...col...1.%in%c("K","A1","A2","A3"))),])
+#######################################################################################1
+prot<-as.matrix(mfuzz_prot$X)
+
+adr_Matrix2<-data.frame(adr_Matrix[,1],adr_Matrix[,c(which(names(adr_Matrix)%in% prot))])
+col<-ncol(adr_Matrix2)
+names(adr_Matrix2)<-c("label",as.matrix(names(adr_Matrix2[,-1])))
+
+adr_anova<-data.frame(names(adr_Matrix2[,-1]))
+
+
+for (i in 2:col) {
+  aov<-(summary(aov(adr_Matrix2[,i] ~ adr_Matrix2[,1],adr_Matrix2))[[1]])$`Pr(>F)`[1]
+  
+  aov<-as.numeric(aov)
+  
+  fc<-log2(mean(adr_Matrix2[12:14,i],na.rm=T)/mean(adr_Matrix2[1:4,i],na.rm=T))
+  # aov<-as.numeric(aov,digits = 4, scientific = F)
+  adr_anova[c(i-1),2]<-aov
+  adr_anova[c(i-1),3]<-fc
+}
+names(adr_anova)<-c('protein',"pvalue","fc")
+write.csv(adr_anova,"08_mfuzz/Spec_adr_anvoa.csv",row.names = F)
+```
+
+
+
+
+
+
+
+```{r Extract IPA result}
+
+####Extract IPA result
+rm(list=ls())
+
+Encyo_ima<- read_delim("09_IPA/Encyo_ima_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+Encyo_ima<-data.frame(Encyo_ima)
+Encyo_ima1<-data.frame(Encyo_ima[which(Encyo_ima$X.log.p.value.>0 & !Encyo_ima$z.score=="NaN"),])
+Encyo_adr<- read_delim("09_IPA/Encyo_adr_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+Encyo_adr<-data.frame(Encyo_adr)
+Encyo_adr1<-data.frame(Encyo_adr[which(Encyo_adr$X.log.p.value.>0 & !Encyo_adr$z.score=="NAN"),])
+Encyo_adr2<-data.frame("Encyo_adr",Encyo_adr1)
+names(Encyo_adr2)<-c("model",names(Encyo_adr2[,-1]))
+Encyo_ima2<-data.frame("Encyo_ima",Encyo_ima1)
+names(Encyo_ima2)<-c("model",names(Encyo_ima2[,-1]))
+
+
+DIAnn_ima<- read_delim("09_IPA/DIAnn_ima_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+DIAnn_ima<-data.frame(DIAnn_ima)
+DIAnn_ima1<-data.frame(DIAnn_ima[which(DIAnn_ima$X.log.p.value.>0 & !DIAnn_ima$z.score=="NaN"),])
+DIAnn_adr<- read_delim("09_IPA/DIAnn_adr_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+DIAnn_adr<-data.frame(DIAnn_adr)
+DIAnn_adr1<-data.frame(DIAnn_adr[which(DIAnn_adr$X.log.p.value.>0 & !DIAnn_adr$z.score=="NaN"),])
+DIAnn_adr2<-data.frame("DIAnn_adr",DIAnn_adr1)
+names(DIAnn_adr2)<-c("model",names(DIAnn_adr2[,-1]))
+DIAnn_ima2<-data.frame("DIAnn_ima",DIAnn_ima1)
+names(DIAnn_ima2)<-c("model",names(DIAnn_ima2[,-1]))
+
+
+Openswath_ima<- read_delim("09_IPA/Openswath_ima_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+Openswath_ima<-data.frame(Openswath_ima)
+Openswath_ima1<-data.frame(Openswath_ima[which(Openswath_ima$X.log.p.value.>0 & !Openswath_ima$z.score=="NaN"),])
+Openswath_adr<- read_delim("09_IPA/Openswath_adr_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+Openswath_adr<-data.frame(Openswath_adr)
+Openswath_adr1<-data.frame(Openswath_adr[which(Openswath_adr$X.log.p.value.>0 & !Openswath_adr$z.score=="NaN"),])
+Openswath_adr2<-data.frame("Openswath_adr",Openswath_adr1)
+names(Openswath_adr2)<-c("model",names(Openswath_adr2[,-1]))
+Openswath_ima2<-data.frame("Openswath_ima",Openswath_ima1)
+names(Openswath_ima2)<-c("model",names(Openswath_ima2[,-1]))
+
+Spec_ima<- read_delim("09_IPA/Spec_ima_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+Spec_ima<-data.frame(Spec_ima)
+Spec_ima1<-data.frame(Spec_ima[which(!Spec_ima$z.score=="NaN"),])
+Spec_adr<- read_delim("09_IPA/Spec_adr_ipa.txt","\t", escape_double = FALSE, trim_ws = TRUE)
+Spec_adr<-data.frame(Spec_adr)
+Spec_adr1<-data.frame(Spec_adr[which(Spec_adr$X.log.p.value.>0 & !Spec_adr$z.score=="NaN"),])
+Spec_adr2<-data.frame("Spec_adr",Spec_adr1)
+names(Spec_adr2)<-c("model",names(Spec_adr2[,-1]))
+Spec_ima2<-data.frame("Spec_ima",Spec_ima1)
+names(Spec_ima2)<-c("model",names(Spec_ima2[,-1]))
+
+
+
+
+
+```
+
+
+
+```{r bubble_plot}
+
+library(GOplot)
+library(tidyverse)
+library(hrbrthemes)
+library(viridis)
+library(gridExtra)
+library(ggrepel)
+library(plotly)
+library(ggplot2)
+require(stringr)
+Spec_adr2$rank<-rank(-(Spec_adr2$X.log.p.value.),)
+Encyo_adr2$rank<-rank(-(Encyo_adr2$X.log.p.value.),)
+DIAnn_adr2$rank<-rank(-(DIAnn_adr2$X.log.p.value.),)
+Openswath_adr2$rank<-rank(-(Openswath_adr2$X.log.p.value.),)
+bubble_adr<-rbind(Spec_adr2,Openswath_adr2,DIAnn_adr2,Encyo_adr2)
+bubble_adr$count<- str_count(bubble_adr$Molecules, "\\,")+1
+# extrafont::loadfonts()
+
+a<-ggplot(bubble_adr, aes(x=z.score, y=X.log.p.value.,size=count, color = model)) +
+  geom_point(alpha=0.7) +
+    # scale_size(range = c(0, 2), name="ratio") +
+    scale_color_viridis(discrete=TRUE)+
+
+    theme(legend.position="right") +
+    geom_text_repel(data=bubble_adr %>% filter(rank<6), aes(label=Ingenuity.Canonical.Pathways), size=4 )+
+theme(legend.direction = 'horizontal',legend.position = 'top',legend.text = element_text(size = 15,color = "black"), legend.title = element_text(size=15,color="black") ,panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black"))+ theme(panel.grid =element_blank())+
+  theme(axis.ticks.length =unit(.25,"cm",2))+
+  theme(axis.text = element_text(size = 15,color = "black"))+
+  
+            theme(plot.subtitle=element_text(size=30, hjust=22, color="black"))+
+            theme(axis.title.x=element_text(size=17, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=17, hjust=0.5, color="black"))
+
+ggsave(file="11_goplot/adr_bubble.pdf",plot=a,device=NULL, width=10,height = 8)
+
+
+Spec_ima2$rank<-rank(-(Spec_ima2$X.log.p.value.),)
+Encyo_ima2$rank<-rank(-(Encyo_ima2$X.log.p.value.),)
+DIAnn_ima2$rank<-rank(-(DIAnn_ima2$X.log.p.value.),)
+Openswath_ima2$rank<-rank(-(Openswath_ima2$X.log.p.value.),)
+bubble_ima<-rbind(Spec_ima2,Openswath_ima2,DIAnn_ima2,Encyo_ima2)
+bubble_ima$count<- str_count(bubble_ima$Molecules, "\\,")+1
+# extrafont::loadfonts()
+
+a<-ggplot(bubble_ima, aes(x=z.score, y=X.log.p.value.,size=count, color = model)) +
+  geom_point(alpha=0.7) +
+    # scale_size(range = c(0, 2), name="ratio") +
+    scale_color_viridis(discrete=TRUE)+
+
+    theme(legend.position="right") +
+    geom_text_repel(data=bubble_ima %>% filter(rank<6), aes(label=Ingenuity.Canonical.Pathways), size=4 )+
+theme(legend.direction = 'horizontal',legend.position = 'top',legend.text = element_text(size = 15,color = "black"), legend.title = element_text(size=15,color="black") ,panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black"))+ theme(panel.grid =element_blank())+
+  theme(axis.ticks.length =unit(.25,"cm",2))+
+  theme(axis.text = element_text(size = 15,color = "black"))+
+  
+            theme(plot.subtitle=element_text(size=30, hjust=22, color="black"))+
+            theme(axis.title.x=element_text(size=17, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=17, hjust=0.5, color="black"))
+
+ggsave(file="11_goplot/ima_bubble.pdf",plot=a,device=NULL, width=10,height = 8)
+
+
+
+
+
+
+```
+
+
+
+```{r extract_Sirtuin Signaling Pathway}
+
+rm(list=ls())
+
+Openswath_adr_ipa <- read.delim("11_goplot/Openswath_adr_ipa.txt",sep = "\t",header = T)
+
+Openswath_adr_ipa1<-data.frame(Openswath_adr_ipa[c(which(Openswath_adr_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+Openswath_adr_ipa2<-data.frame(t(Openswath_adr_ipa1[,]))
+
+
+names(Openswath_adr_ipa2)<-"Openswath_adr_ipa"
+
+DIAnn_adr_ipa <- read.delim("11_goplot/DIAnn_adr_ipa.txt",sep = "\t",header = T)
+
+DIAnn_adr_ipa1<-data.frame(DIAnn_adr_ipa[c(which(DIAnn_adr_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+DIAnn_adr_ipa2<-data.frame(t(DIAnn_adr_ipa1[,]))
+
+names(DIAnn_adr_ipa2)<-"DIAnn_adr_ipa"
+
+Encyo_adr_ipa <- read.delim("11_goplot/Encyo_adr_ipa.txt",sep = "\t",header = T)
+
+Encyo_adr_ipa1<-data.frame(Encyo_adr_ipa[c(which(Encyo_adr_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+Encyo_adr_ipa2<-data.frame(t(Encyo_adr_ipa1[,]))
+
+names(Encyo_adr_ipa2)<-"Encyo_adr_ipa"
+
+Spec_adr_ipa <- read.delim("11_goplot/Spec_adr_ipa.txt",sep = "\t",header = T)
+
+Spec_adr_ipa1<-data.frame(Spec_adr_ipa[c(which(Spec_adr_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+Spec_adr_ipa2<-data.frame(t(Spec_adr_ipa1[,]))
+
+names(Spec_adr_ipa2)<-"Spec_adr_ipa"
+
+
+
+
+
+Openswath_adr_sirtuin<-c(as.matrix(Openswath_adr_ipa2$Openswath_adr_ipa))
+
+Spec_adr_sirtuin<-c(as.matrix(Spec_adr_ipa2$Spec_adr_ipa))
+
+DIAnn_adr_sirtuin<-c(as.matrix(DIAnn_adr_ipa2$DIAnn_adr_ipa))
+
+Encyo_adr_sirtuin<-c(as.matrix(Encyo_adr_ipa2$Encyo_adr_ipa))
+
+Sirtuin_Signaling_Pathway_adr<-rbind(Openswath_adr_sirtuin,Spec_adr_sirtuin,DIAnn_adr_sirtuin,Encyo_adr_sirtuin)
+
+#########################4
+
+Openswath_ima_ipa <- read.delim("11_goplot/Openswath_ima_ipa.txt",sep = "\t",header = T)
+
+Openswath_ima_ipa1<-data.frame(Openswath_ima_ipa[c(which(Openswath_ima_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+Openswath_ima_ipa2<-data.frame(t(Openswath_ima_ipa1[,]))
+
+
+names(Openswath_ima_ipa2)<-"Openswath_ima_ipa"
+
+DIAnn_ima_ipa <- read.delim("11_goplot/DIAnn_ima_ipa.txt",sep = "\t",header = T)
+
+DIAnn_ima_ipa1<-data.frame(DIAnn_ima_ipa[c(which(DIAnn_ima_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+DIAnn_ima_ipa2<-data.frame(t(DIAnn_ima_ipa1[,]))
+
+names(DIAnn_ima_ipa2)<-"DIAnn_ima_ipa"
+
+Encyo_ima_ipa <- read.delim("11_goplot/Encyo_ima_ipa.txt",sep = "\t",header = T)
+
+Encyo_ima_ipa1<-data.frame(Encyo_ima_ipa[c(which(Encyo_ima_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+Encyo_ima_ipa2<-data.frame(t(Encyo_ima_ipa1[,]))
+
+names(Encyo_ima_ipa2)<-"Encyo_ima_ipa"
+
+Spec_ima_ipa <- read.delim("11_goplot/Spec_ima_ipa.txt",sep = "\t",header = T)
+
+Spec_ima_ipa1<-data.frame(Spec_ima_ipa[c(which(Spec_ima_ipa$Ingenuity.Canonical.Pathways=="Sirtuin Signaling Pathway")),])
+
+Spec_ima_ipa2<-data.frame(t(Spec_ima_ipa1[,]))
+
+names(Spec_ima_ipa2)<-"Spec_ima_ipa"
+
+
+
+
+Openswath_ima_sirtuin<-c(as.matrix(Openswath_ima_ipa2$Openswath_ima_ipa))
+
+Spec_ima_sirtuin<-c(as.matrix(Spec_ima_ipa2$Spec_ima_ipa))
+
+DIAnn_ima_sirtuin<-c(as.matrix(DIAnn_ima_ipa2$DIAnn_ima_ipa))
+
+Encyo_ima_sirtuin<-c(as.matrix(Encyo_ima_ipa2$Encyo_ima_ipa))
+Sirtuin_Signaling_Pathway_ima<-rbind(Openswath_ima_sirtuin,Spec_ima_sirtuin,DIAnn_ima_sirtuin,Encyo_ima_sirtuin)
+
+Sirtuin_Signaling_Pathway<-data.frame(rbind(Openswath_ima_sirtuin,Spec_ima_sirtuin,DIAnn_ima_sirtuin,Encyo_ima_sirtuin,Openswath_adr_sirtuin,Spec_adr_sirtuin,DIAnn_adr_sirtuin,Encyo_adr_sirtuin))
+
+write.csv(Sirtuin_Signaling_Pathway,"15_Sirtuin/Sirtuin_Signaling_Pathway.csv",row.names = T)
+
+
+
+
+Sirtuin_Signaling_Pathway2<-data.frame(t(str_split_fixed(Sirtuin_Signaling_Pathway$rbind.Openswath_ima_sirtuin..Spec_ima_sirtuin..DIAnn_ima_sirtuin..,",",100)))
+names(Sirtuin_Signaling_Pathway2)<-row.names(Sirtuin_Signaling_Pathway)
+library(reshape2)
+Sirtuin_Signaling_Pathway2$reshape<-seq(1, 100, by = 1) 
+Sirtuin_Signaling_Pathway3<-melt(Sirtuin_Signaling_Pathway2,id.vars = c("reshape"))
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(ggplot2)
+keytypes(org.Hs.eg.db) 
+data(geneList, package="DOSE")
+Sirtuin_Signaling_Pathway3$value<-as.character(Sirtuin_Signaling_Pathway3$value)
+protID = bitr(Sirtuin_Signaling_Pathway3$value, fromType="SYMBOL", toType=c("UNIPROT"), OrgDb="org.Hs.eg.db")
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+names(protein)<-c("UNIPROT")
+protID2<-merge(protein,protID,by.x="UNIPROT",all=F)
+names(protID2)<-c("UNIPROT","value")
+Sirtuin_Signaling_Pathway4<-merge(Sirtuin_Signaling_Pathway3,protID2,by.x="value",all=T)
+Sirtuin_Signaling_Pathway5<-Sirtuin_Signaling_Pathway4[,-c(2)]
+Sirtuin_Signaling_Pathway6<-dcast(Sirtuin_Signaling_Pathway5,value+UNIPROT~variable)
+write.table(Sirtuin_Signaling_Pathway6[-c(1,40),],"15_Sirtuin/Sirtuin_Signaling_Pathway.txt",row.names = F,sep = "\t")
+
+
+
+
+
+
+
+
+```
+
+
+```{r heatmap_sirtuin_4_software}
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Openswath_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Openswath_ima",".pdf"),main = paste0("Heatmap for Openswath_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Openswath_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Openswath_adr",".pdf"),main = paste0("Heatmap for Openswath_adr "))
+######
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$DIAnn_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/DIAnn_ima",".pdf"),main = paste0("Heatmap for DIAnn_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$DIAnn_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/DIAnn_adr",".pdf"),main = paste0("Heatmap for DIAnn_adr "))
+```
+
+
+```{r heatmap_sirtuin_4_software}
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Encyo_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Encyo_ima",".pdf"),main = paste0("Heatmap for Encyo_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Encyo_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Encyo_adr",".pdf"),main = paste0("Heatmap for Encyo_adr "))
+######
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Spec_ima_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","I1","I2","I3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","I1","I2","I3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","I1","I2","I3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Spec_ima",".pdf"),main = paste0("Heatmap for Spec_ima "))
+
+#########22
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+prot<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep="\t",header = T,stringsAsFactors = F)
+row.names(prot)<-prot$UNIPROT
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in% row.names(prot[which(prot$Spec_adr_sirtuin==1),]) ))])
+
+df4<-data.frame(df4[c(which(df4$df3...1.%in% c("K","A1","A2","A3"))),])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("K","A1","A2","A3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+
+
+
+names(label)<-c("sample","label")
+
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+names(df5)<-c("UNIPROT",as.matrix(names(df5[,-1])))
+
+df5.1<-merge(prot[,1:2],df5,by.x="UNIPROT",all=F)
+
+
+df5.2<-df5.1[,-c(1:2)]
+
+row.names(df5.2)<-df5.1$value
+
+
+
+annotation_col<- data.frame(CellType = factor(label$label,levels = c("K","A1","A2","A3")),
+                            row.names = label$sample)
+
+
+type_color <- c(brewer.pal(11,"Spectral")[6:3])
+names(type_color) <- c("K","A1","A2","A3")
+ann_colors <- list(CellType=type_color)
+colors = c( brewer.pal(11,"RdYlBu")[10:1])
+df5.2[is.na(df5.2)]<-0
+pheatmap(df5.2[,],scale="row",color = colors, annotation_col = annotation_col,
+         annotation_colors = ann_colors, fontsize_col = 10, cluster_rows = T, cluster_cols = F,show_rownames =T, show_colnames = F, fontsize = 10,cellwidth=10,cellheight=10,filename = paste0("15_Sirtuin/Spec_adr",".pdf"),main = paste0("Heatmap for Spec_adr "))
+```
+
+```{r peptide_corrpolt}
+rm(list = ls())
+
+DIAnnPep<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+
+peptide2<-c(as.matrix(peptide$elements))
+
+DIAnnPep2<-data.frame(DIAnnPep[c(which(DIAnnPep$peptide %in% peptide2)),])
+
+DIAnnPep2$peptide<-factor(DIAnnPep2$peptide,levels=peptide2)
+
+DIAnnPep2<-DIAnnPep2[order(DIAnnPep2[,1]),]
+
+DIAnnPep3<-data.frame(DIAnnPep2[,order(names(DIAnnPep2))])
+
+DIAnnPep4<-c(DIAnnPep3[,1])
+
+for (i in 2:26) {
+DIAnnPep4<-c(DIAnnPep4,DIAnnPep3[,i])
+}
+
+DIAnnPep5<-data.frame(DIAnnPep4)
+
+
+names(DIAnnPep5)<-c("DIAnn")
+
+SpecPep<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+SpecPep2<-data.frame(SpecPep[c(which(SpecPep$peptide %in% peptide2)),])
+
+SpecPep2$peptide<-factor(SpecPep2$peptide,levels=peptide2)
+
+SpecPep2<-SpecPep2[order(SpecPep2[,1]),]
+
+SpecPep3<-data.frame(SpecPep2[,order(names(SpecPep2))])
+
+SpecPep4<-c(SpecPep3[,1])
+
+for (i in 2:26) {
+  
+  
+  SpecPep4<-c(SpecPep4,SpecPep3[,i])
+  
+
+}
+
+SpecPep5<-data.frame(SpecPep4)
+
+
+
+
+names(SpecPep5)<-c("Spec")
+
+EncyoPep<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+EncyoPep2<-data.frame(EncyoPep[c(which(EncyoPep$peptide %in% peptide2)),])
+
+EncyoPep2$peptide<-factor(EncyoPep2$peptide,levels=peptide2)
+
+EncyoPep2<-EncyoPep2[order(EncyoPep2[,1]),]
+
+EncyoPep3<-data.frame(EncyoPep2[,order(names(EncyoPep2))])
+
+EncyoPep4<-c(EncyoPep3[,1])
+
+for (i in 2:26) {
+  EncyoPep4<-c(EncyoPep4,EncyoPep3[,i])
+}
+EncyoPep5<-data.frame(EncyoPep4)
+names(EncyoPep5)<-c("Encyo")
+
+OpenswathPep<-read.table("05_peptide_matrix/part_ave/Openswath_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+OpenswathPep2<-data.frame(OpenswathPep[c(which(OpenswathPep$peptide %in% peptide2)),])
+
+OpenswathPep2<-OpenswathPep2[,-2]
+
+OpenswathPep2<-aggregate(OpenswathPep2[,colnames(OpenswathPep2)[2:ncol(OpenswathPep2)]],by=list(OpenswathPep2$peptide_group_label),mean,na.rm= TRUE)
+
+OpenswathPep2$Group.1<-factor(OpenswathPep2$Group.1,levels=peptide2)
+
+OpenswathPep2<-OpenswathPep2[order(OpenswathPep2[,1]),]
+
+OpenswathPep3<-data.frame(OpenswathPep2[,order(names(OpenswathPep2))])
+
+OpenswathPep4<-c(OpenswathPep3[,1])
+
+for (i in 2:26) {
+  OpenswathPep4<-c(OpenswathPep4,OpenswathPep3[,i])
+}
+OpenswathPep5<-data.frame(OpenswathPep4)
+names(OpenswathPep5)<-c("Openswath")
+
+############4
+peptide_scatter<-data.frame(DIAnnPep5,SpecPep5,EncyoPep5, OpenswathPep5)
+
+write.table(peptide_scatter,"12_matrix_analyze/peptide_scatter.txt",sep = "\t",row.names = F)
+
+
+library(corrplot)
+library(readr)
+library(RColorBrewer)
+
+c(brewer.pal(8,"Accent")[1:7])
+
+df1 <- data.frame(peptide_scatter)
+nrow(df1)
+ncol(df1) #30
+flag <- apply(is.na(df1),1,sum)
+df2<-df1[which(flag < ncol(df1)*1),]
+
+res1<-cor(df2[1:4], df2[1:4], use = "pairwise.complete.obs")
+
+pdf("12_matrix_analyze/peptide_corrplot_4software_pearson.pdf")
+
+
+corrplot (res1,method="ellipse",tl.col = "black",tl.srt = 0,tl.cex=1,type = "upper",shade.lwd = 10,addgrid.col="white",col =c(brewer.pal(11,"RdYlGn")[1:9]),addCoef.col = "black",diag = FALSE)
+
+
+
+dev.off()
+
+
+
+
+```
+
+```{r SCatter_plot_Peptide}
+
+rm(list = ls())
+
+DIAnnPep<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+
+peptide2<-c(as.matrix(peptide$elements))
+
+DIAnnPep2<-data.frame(DIAnnPep[c(which(DIAnnPep$peptide %in% peptide2)),])
+
+DIAnnPep2$peptide<-factor(DIAnnPep2$peptide,levels=peptide2)
+
+DIAnnPep2<-DIAnnPep2[order(DIAnnPep2[,1]),]
+
+DIAnnPep3<-data.frame(DIAnnPep2[,order(names(DIAnnPep2))])
+
+DIAnnPep4<-c(DIAnnPep3[,1])
+
+for (i in 2:26) {
+  
+DIAnnPep4<-c(DIAnnPep4,DIAnnPep3[,i])
+  
+
+}
+
+DIAnnPep5<-data.frame(DIAnnPep4)
+
+
+names(DIAnnPep5)<-c("DIAnn")
+
+SpecPep<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+SpecPep2<-data.frame(SpecPep[c(which(SpecPep$peptide %in% peptide2)),])
+
+SpecPep2$peptide<-factor(SpecPep2$peptide,levels=peptide2)
+
+SpecPep2<-SpecPep2[order(SpecPep2[,1]),]
+
+SpecPep3<-data.frame(SpecPep2[,order(names(SpecPep2))])
+
+SpecPep4<-c(SpecPep3[,1])
+
+for (i in 2:26) {
+  
+  
+  SpecPep4<-c(SpecPep4,SpecPep3[,i])
+  
+
+}
+
+SpecPep5<-data.frame(SpecPep4)
+
+
+
+
+names(SpecPep5)<-c("Spec")
+
+EncyoPep<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",header = T,sep = '\t')
+
+peptide<-read.table("12_matrix_analyze/peptide_overlap.txt",header = T,sep = '\t')
+
+peptide<-data.frame(peptide)
+peptide2<-c(as.matrix(peptide$elements))
+
+EncyoPep2<-data.frame(EncyoPep[c(which(EncyoPep$peptide %in% peptide2)),])
+
+EncyoPep2$peptide<-factor(EncyoPep2$peptide,levels=peptide2)
+
+EncyoPep2<-EncyoPep2[order(EncyoPep2[,1]),]
+
+EncyoPep3<-data.frame(EncyoPep2[,order(names(EncyoPep2))])
+
+EncyoPep4<-c(EncyoPep3[,1])
+
+for (i in 2:26) {
+  
+  
+  EncyoPep4<-c(EncyoPep4,EncyoPep3[,i])
+  
+
+}
+
+EncyoPep5<-data.frame(EncyoPep4)
+
+
+
+
+names(EncyoPep5)<-c("Encyo")
+
+
+ ##################22
+peptide_scatter<-data.frame(DIAnnPep5,SpecPep5,EncyoPep5)
+
+write.table(peptide_scatter,"12_matrix_analyze/peptide_scatter.txt",sep = "\t",row.names = F)
+
+   #draw scatter
+
+library(ggplot2)
+peptide<-read.table("12_matrix_analyze/peptide_scatter.txt",header = T,sep = '\t')
+
+scatter<-data.frame(log2(peptide))
+
+
+
+
+
+DIAnn5<-unlist(scatter[,c("DIAnn")])
+
+Spec5<-unlist(scatter[,c("Spec")])
+
+
+r <- cor(Spec5, DIAnn5, use = "pairwise.complete.obs")
+
+
+pdf("12_matrix_analyze/smoothscatter_peptide_DIAnn_Spec.pdf")
+
+
+smoothScatter(Spec5, DIAnn5, nrpoints = 100,cex = 2,
+colramp = colorRampPalette(c(blues9,"orange", "red")),  main = "pearson correlation", ylab = "DIAnn", xlab = "Spec")
+
+
+# abline(lm(Spec5 ~ DIAnn5),col="red", lwd=2, lty=2)
+
+text(20,30,labels = paste0("r= ",round(r,2)),cex = 1.2)
+
+
+
+dev.off()
+
+
+peptide<-read.table("12_matrix_analyze/peptide_scatter.txt",header = T,sep = '\t')
+
+scatter<-data.frame(log2(peptide))
+
+
+DIAnn5<-unlist(scatter[,c("DIAnn")])
+
+Encyo5<-unlist(scatter[,c("Encyo")])
+
+
+r <- cor(Encyo5, DIAnn5, use = "pairwise.complete.obs")
+
+
+pdf("12_matrix_analyze/smoothscatter_peptide_DIAnn_Encyo.pdf")
+
+
+smoothScatter(Encyo5, DIAnn5, nrpoints = 100,cex = 2,
+colramp = colorRampPalette(c(blues9,"orange", "red")),  main = "pearson correlation", ylab = "DIAnn", xlab = "Encyo")
+
+
+# abline(lm(Encyo5 ~ DIAnn5),col="red", lwd=2, lty=2)
+
+ text(20,30,labels = paste0("r= ",round(r,2)),cex = 1.2)
+
+         
+dev.off()
+
+peptide<-read.table("12_matrix_analyze/peptide_scatter.txt",header = T,sep = '\t')
+
+scatter<-data.frame(log2(peptide))
+
+
+Spec5<-unlist(scatter[,c("Spec")])
+
+Encyo5<-unlist(scatter[,c("Encyo")])
+
+
+r <- cor(Encyo5, Spec5, use = "pairwise.complete.obs")
+
+
+pdf("12_matrix_analyze/smoothscatter_peptide_Spec_Encyo.pdf")
+
+
+smoothScatter(Encyo5, Spec5, nrpoints = 100,cex = 2,
+colramp = colorRampPalette(c(blues9,"orange", "red")),  main = "pearson correlation", ylab = "Spec", xlab = "Encyo")
+
+
+# abline(lm(Encyo5 ~ Spec5),col="red", lwd=2, lty=2)
+
+ text(20,25,labels = paste0("r= ",round(r,2)),cex = 1.2)
+
+         
+dev.off()
+
+```
+
+```{r QC--PCA}
+
+rm(list=ls())
+library(ggplot2)
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+DIAnn2<-data.frame(DIAnn[,c(grep("_repB",names(DIAnn)))])
+
+names1<-c((gsub("_repB","",names(DIAnn2))),names(DIAnn2))
+
+
+DIAnn3<-data.frame(DIAnn[,c(which(names(DIAnn)%in% names1))])
+
+a<-substr(names(DIAnn3),25,40)
+names(DIAnn3)<-a
+DIAnn4<-data.frame(names(DIAnn3),t(DIAnn3))
+DIAnn5<-DIAnn4[order(DIAnn4[,1]),-1]
+DIAnn6<-data.frame(t(DIAnn5))
+
+d1 <- data.frame(2^(DIAnn6[,]))
+
+
+d2 <- data.frame((DIAnn6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/DIAnn_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(DIAnn[,-1])
+
+list2<-gsub("_repB","",list)
+
+DIAnn7<-data.frame(list2,t(2^DIAnn[,-1]))
+
+DIAnn8<-aggregate(DIAnn7[,colnames(DIAnn7)[2:ncol(DIAnn7)]],by=list(DIAnn7$list2),mean,na.rm= TRUE)
+
+DIAnn9<-DIAnn8[order(DIAnn8[,1]),]
+
+
+
+df1<-data.frame(t(DIAnn9[,-1]))
+
+names(df1)<-c(as.matrix(DIAnn9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/DIAnn_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+write.table(a,"13_QC/DIAnn_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(DIAnn7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+DIAnn10<-data.frame(label,DIAnn7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(DIAnn10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/DIAnn_PCA_allProt.pdf",height = 6,width = 6)
+
+
+rm(list=ls())
+library(ggplot2)
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Spec2<-data.frame(Spec[,c(grep("_repB",names(Spec)))])
+
+names1<-c((gsub("_repB","",names(Spec2))),names(Spec2))
+
+
+Spec3<-data.frame(Spec[,c(which(names(Spec)%in% names1))])
+
+a<-substr(names(Spec3),25,40)
+names(Spec3)<-a
+Spec4<-data.frame(names(Spec3),t(Spec3))
+Spec5<-Spec4[order(Spec4[,1]),-1]
+Spec6<-data.frame(t(Spec5))
+
+d1 <- data.frame(2^(Spec6[,]))
+
+
+d2 <- data.frame((Spec6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Spec_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Spec[,-1])
+
+list2<-gsub("_repB","",list)
+
+Spec7<-data.frame(list2,t(2^Spec[,-1]))
+
+Spec8<-aggregate(Spec7[,colnames(Spec7)[2:ncol(Spec7)]],by=list(Spec7$list2),mean,na.rm= TRUE)
+
+Spec9<-Spec8[order(Spec8[,1]),]
+
+
+
+df1<-data.frame(t(Spec9[,-1]))
+
+names(df1)<-c(as.matrix(Spec9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/Spec_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+
+write.table(a,"13_QC/Spec_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(Spec7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+Spec10<-data.frame(label,Spec7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(Spec10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/Spec_PCA_allProt.pdf",height = 6,width = 6)
+
+
+
+
+rm(list=ls())
+library(ggplot2)
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Encyo2<-data.frame(Encyo[,c(grep("_repB",names(Encyo)))])
+
+names1<-c((gsub("_repB","",names(Encyo2))),names(Encyo2))
+
+
+Encyo3<-data.frame(Encyo[,c(which(names(Encyo)%in% names1))])
+
+a<-substr(names(Encyo3),25,40)
+names(Encyo3)<-a
+Encyo4<-data.frame(names(Encyo3),t(Encyo3))
+Encyo5<-Encyo4[order(Encyo4[,1]),-1]
+Encyo6<-data.frame(t(Encyo5))
+
+d1 <- data.frame(2^(Encyo6[,]))
+
+
+d2 <- data.frame((Encyo6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Encyo_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Encyo[,-1])
+
+list2<-gsub("_repB","",list)
+
+Encyo7<-data.frame(list2,t(2^Encyo[,-1]))
+
+Encyo8<-aggregate(Encyo7[,colnames(Encyo7)[2:ncol(Encyo7)]],by=list(Encyo7$list2),mean,na.rm= TRUE)
+
+Encyo9<-Encyo8[order(Encyo8[,1]),]
+
+
+
+df1<-data.frame(t(Encyo9[,-1]))
+
+names(df1)<-c(as.matrix(Encyo9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/Encyo_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+write.table(a,"13_QC/Encyo_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(Encyo7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+Encyo10<-data.frame(label,Encyo7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(Encyo10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/Encyo_PCA_allProt.pdf",height = 6,width = 6)
+
+
+
+rm(list=ls())
+library(ggplot2)
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Openswath2<-data.frame(Openswath[,c(grep("_repB",names(Openswath)))])
+
+names1<-c((gsub("_repB","",names(Openswath2))),names(Openswath2))
+
+
+Openswath3<-data.frame(Openswath[,c(which(names(Openswath)%in% names1))])
+
+a<-substr(names(Openswath3),25,40)
+names(Openswath3)<-a
+Openswath4<-data.frame(names(Openswath3),t(Openswath3))
+Openswath5<-Openswath4[order(Openswath4[,1]),-1]
+Openswath6<-data.frame(t(Openswath5))
+
+d1 <- data.frame(2^(Openswath6[,]))
+
+
+d2 <- data.frame((Openswath6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Openswath_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Openswath[,-1])
+
+list2<-gsub("_repB","",list)
+
+Openswath7<-data.frame(list2,t(2^Openswath[,-1]))
+
+Openswath8<-aggregate(Openswath7[,colnames(Openswath7)[2:ncol(Openswath7)]],by=list(Openswath7$list2),mean,na.rm= TRUE)
+
+Openswath9<-Openswath8[order(Openswath8[,1]),]
+
+
+
+df1<-data.frame(t(Openswath9[,-1]))
+
+names(df1)<-c(as.matrix(Openswath9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+A1<-as.numeric(df3$A1)
+
+A2<-as.numeric(df3$A2)
+
+A3<-as.numeric(df3$A3)
+I1<-as.numeric(df3$I1)
+
+I2<-as.numeric(df3$I2)
+
+I3<-as.numeric(df3$I3)
+
+K<-as.numeric(df3$K)
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+pdf("13_QC/Openswath_un_log_violin_biorep.pdf")
+a<-vioplot(K,A1,A2,A3,I1,I2,I3,
+        areaEqual=FALSE, col=c("seagreen4", "seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+      rectCol=c("seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4","seagreen4"),
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="model", ylab="CV",plotCentre = "point")
+
+
+write.table(a,"13_QC/Openswath_note.txt",sep = "\t")
+
+##########pca###
+
+library(umap)
+source("common.R")
+
+
+library(RColorBrewer)
+
+label1<-substr(Openswath7[,1],25,27)
+
+label2<-gsub("_","",label1)
+label<-substr(label2,1,1)
+
+
+Openswath10<-data.frame(label,Openswath7[,-1])
+
+color <- c("#3678AD","#D6221E","#4DA74A")
+
+
+drawPCA(Openswath10,color,rowNormalization = F,colNormalization =T ,strTitle = NULL)
+
+ggsave("13_QC/Openswath_PCA_allProt.pdf",height = 6,width = 6)
+
+
+```
+
+```{r boxplot--proteins}
+####boxplot###
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+
+df <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+
+# prot<-read.csv("10_heatmap/3pathways_IPA.csv")
+
+prot<-read.table("10_heatmap/overlap_prot23.txt",sep="\t",header = T,stringsAsFactors = F)
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in%prot$prot23))])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("A3","A2","A1","K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+names(label)<-c("sample","label")
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+df6<-data.frame(label,t(df5[,-1]))
+
+df6$label<-factor(df6$label,levels=c("K","A1","A2","A3","I1","I2","I3"))
+
+df7<-df6[order(df6[,2]),]
+
+adr<-data.frame(df7[-c(17:26),])
+
+adr1<-adr[,-1]
+
+label<-adr1$label
+  library(ggplot2)
+
+col2<-ncol(adr1)
+for (i in 2:col2) {
+  aov<-(summary(aov(adr1[,i] ~ adr1$label,adr1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(adr1, aes(x=label, y=adr1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(adr1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/DIAnn_adr_",colnames(adr1)[i],".pdf"))
+}
+
+
+ima<-data.frame(df7[-c(5:16),])
+
+ima1<-ima[,-1]
+
+label<-ima1$label
+  library(ggplot2)
+
+col2<-ncol(ima1)
+for (i in 2:col2) {
+  aov<-(summary(aov(ima1[,i] ~ ima1$label,ima1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(ima1, aes(x=label, y=ima1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(ima1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/DIAnn_ima_",colnames(ima1)[i],".pdf"))
+}
+
+
+
+
+ 
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+
+df <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+
+# prot<-read.csv("10_heatmap/3pathways_IPA.csv")
+
+prot<-read.table("10_heatmap/overlap_prot23.txt",sep="\t",header = T,stringsAsFactors = F)
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in%prot$prot23))])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("A3","A2","A1","K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+names(label)<-c("sample","label")
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+df6<-data.frame(label,t(df5[,-1]))
+
+df6$label<-factor(df6$label,levels=c("K","A1","A2","A3","I1","I2","I3"))
+
+df7<-df6[order(df6[,2]),]
+
+adr<-data.frame(df7[-c(17:26),])
+
+adr1<-adr[,-1]
+
+label<-adr1$label
+  library(ggplot2)
+
+col2<-ncol(adr1)
+for (i in 2:col2) {
+  aov<-(summary(aov(adr1[,i] ~ adr1$label,adr1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(adr1, aes(x=label, y=adr1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(adr1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/Spec_adr_",colnames(adr1)[i],".pdf"))
+}
+
+
+ima<-data.frame(df7[-c(5:16),])
+
+ima1<-ima[,-1]
+
+label<-ima1$label
+  library(ggplot2)
+
+col2<-ncol(ima1)
+for (i in 2:col2) {
+  aov<-(summary(aov(ima1[,i] ~ ima1$label,ima1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(ima1, aes(x=label, y=ima1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(ima1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/Spec_ima_",colnames(ima1)[i],".pdf"))
+}
+
+
+
+
+
+
+
+rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+
+df <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+
+# prot<-read.csv("10_heatmap/3pathways_IPA.csv")
+
+prot<-read.table("10_heatmap/overlap_prot23.txt",sep="\t",header = T,stringsAsFactors = F)
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in%prot$prot23))])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("A3","A2","A1","K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+names(label)<-c("sample","label")
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+df6<-data.frame(label,t(df5[,-1]))
+
+df6$label<-factor(df6$label,levels=c("K","A1","A2","A3","I1","I2","I3"))
+
+df7<-df6[order(df6[,2]),]
+
+adr<-data.frame(df7[-c(17:26),])
+
+adr1<-adr[,-1]
+
+label<-adr1$label
+  library(ggplot2)
+
+col2<-ncol(adr1)
+for (i in 2:col2) {
+  aov<-(summary(aov(adr1[,i] ~ adr1$label,adr1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(adr1, aes(x=label, y=adr1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(adr1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/Encyo_adr_",colnames(adr1)[i],".pdf"))
+}
+
+
+ima<-data.frame(df7[-c(5:16),])
+
+ima1<-ima[,-1]
+
+label<-ima1$label
+  library(ggplot2)
+
+col2<-ncol(ima1)
+for (i in 2:col2) {
+  aov<-(summary(aov(ima1[,i] ~ ima1$label,ima1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(ima1, aes(x=label, y=ima1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(ima1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/Encyo_ima_",colnames(ima1)[i],".pdf"))
+}
+
+```
+
+```{r QC--TechreP--boxplot}
+####QC--Techrep###boxplot
+rm(list=ls())
+library(ggplot2)
+boxplot<-data.frame(1,2,3,4)
+names(boxplot)<-c("DIAnn","Spec","Encyo","Openswath")
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+DIAnn2<-data.frame(DIAnn[,c(grep("_repB",names(DIAnn)))])
+
+names1<-c((gsub("_repB","",names(DIAnn2))),names(DIAnn2))
+
+
+DIAnn3<-data.frame(DIAnn[,c(which(names(DIAnn)%in% names1))])
+
+a<-substr(names(DIAnn3),25,40)
+names(DIAnn3)<-a
+DIAnn4<-data.frame(names(DIAnn3),t(DIAnn3))
+DIAnn5<-DIAnn4[order(DIAnn4[,1]),-1]
+DIAnn6<-data.frame(t(DIAnn5))
+
+d1 <- data.frame(2^(DIAnn6[,]))
+
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+ 
+r <- cor(s1, s2, use = 'pairwise.complete.obs')
+ DIAnnr=round(r,3)
+
+boxplot[i,c("DIAnn")]<-DIAnnr
+
+}
+
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Openswath2<-data.frame(Openswath[,c(grep("_repB",names(Openswath)))])
+
+names1<-c((gsub("_repB","",names(Openswath2))),names(Openswath2))
+
+
+Openswath3<-data.frame(Openswath[,c(which(names(Openswath)%in% names1))])
+
+a<-substr(names(Openswath3),25,40)
+names(Openswath3)<-a
+Openswath4<-data.frame(names(Openswath3),t(Openswath3))
+Openswath5<-Openswath4[order(Openswath4[,1]),-1]
+Openswath6<-data.frame(t(Openswath5))
+
+d1 <- data.frame(2^(Openswath6[,]))
+
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+ 
+r <- cor(s1, s2, use = 'pairwise.complete.obs')
+ Openswathr=round(r,3)
+
+boxplot[i,c("Openswath")]<-Openswathr
+
+}
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Encyo2<-data.frame(Encyo[,c(grep("_repB",names(Encyo)))])
+
+names1<-c((gsub("_repB","",names(Encyo2))),names(Encyo2))
+
+
+Encyo3<-data.frame(Encyo[,c(which(names(Encyo)%in% names1))])
+
+a<-substr(names(Encyo3),25,40)
+names(Encyo3)<-a
+Encyo4<-data.frame(names(Encyo3),t(Encyo3))
+Encyo5<-Encyo4[order(Encyo4[,1]),-1]
+Encyo6<-data.frame(t(Encyo5))
+
+d1 <- data.frame(2^(Encyo6[,]))
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+r <- cor(s1, s2, use = 'pairwise.complete.obs')
+ Encyor=round(r,3)
+boxplot[i,c("Encyo")]<-Encyor
+
+}
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Spec2<-data.frame(Spec[,c(grep("_repB",names(Spec)))])
+
+names1<-c((gsub("_repB","",names(Spec2))),names(Spec2))
+
+
+Spec3<-data.frame(Spec[,c(which(names(Spec)%in% names1))])
+
+a<-substr(names(Spec3),25,40)
+names(Spec3)<-a
+Spec4<-data.frame(names(Spec3),t(Spec3))
+Spec5<-Spec4[order(Spec4[,1]),-1]
+Spec6<-data.frame(t(Spec5))
+
+d1 <- data.frame(2^(Spec6[,]))
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+r <- cor(s1, s2, use = 'pairwise.complete.obs')
+ Specr=round(r,3)
+boxplot[i,c("Spec")]<-Specr
+
+}
+
+
+
+
+
+
+
+
+
+boxplot2<-data.frame("DIAnn",boxplot[,c("DIAnn")])
+names(boxplot2)<-c("label","Pearson correlation")
+
+boxplot3<-data.frame("Encyo",boxplot[,c("Encyo")])
+names(boxplot3)<-c("label","Pearson correlation")
+
+boxplot4<-data.frame("Spec",boxplot[,c("Spec")])
+names(boxplot4)<-c("label","Pearson correlation")
+
+boxplot6<-data.frame("Openswath",boxplot[,c("Openswath")])
+names(boxplot6)<-c("label","Pearson correlation")
+
+boxplot5<-rbind(boxplot2,boxplot3,boxplot4,boxplot6)
+
+
+ p<-ggplot(boxplot5, aes(x=label, y=boxplot5$`Pearson correlation`,color=label))+ geom_boxplot(size=0.5,outlier.colour="black",outlier.shape = NA)+
+
+#geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+   geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Pearson correlation")+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("13_QC/tech_rep_boxplot_4softwares.pdf"))
+
+ 
+ rm(list=ls())
+library(pheatmap)
+library(RColorBrewer)
+
+df <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F,row.names = 1)
+
+
+# prot<-read.csv("10_heatmap/3pathways_IPA.csv")
+
+prot<-read.table("10_heatmap/overlap_prot23.txt",sep="\t",header = T,stringsAsFactors = F)
+
+
+
+df1<-data.frame(2^t(df))
+
+df2<-data.frame(row.names(df1),df1)
+
+col<-ncol(df2)
+
+
+
+for (i in 1:nrow(df2)) {
+
+  
+  df2[i,col+1]<-strsplit(c(as.matrix(df2[i,1])),"_",fixed=T)[[1]][5]
+    
+}
+
+df3<-data.frame(df2[,col+1],df2[,-c(1,col+1)])
+
+df4<-data.frame(df3[,1],df3[,c(which(names(df3)%in%prot$prot23))])
+
+df4$df3...1.<-factor(df4$df3...1.,levels=c("A3","A2","A1","K","I1","I2","I3"))
+
+df4<-df4[order(df4[,1]),]
+
+label<-data.frame(row.names(df4),as.matrix(df4$df3...1.))
+
+names(label)<-c("sample","label")
+
+df5<-data.frame(t(df4[,-1]))
+
+df5<-data.frame(row.names(df5),df5)
+
+df6<-data.frame(label,t(df5[,-1]))
+
+df6$label<-factor(df6$label,levels=c("K","A1","A2","A3","I1","I2","I3"))
+
+df7<-df6[order(df6[,2]),]
+
+adr<-data.frame(df7[-c(17:26),])
+
+adr1<-adr[,-1]
+
+label<-adr1$label
+  library(ggplot2)
+
+col2<-ncol(adr1)
+for (i in 2:col2) {
+  aov<-(summary(aov(adr1[,i] ~ adr1$label,adr1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(adr1, aes(x=label, y=adr1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(adr1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/Openswath_adr_",colnames(adr1)[i],".pdf"))
+}
+
+
+ima<-data.frame(df7[-c(5:16),])
+
+ima1<-ima[,-1]
+
+label<-ima1$label
+  library(ggplot2)
+
+col2<-ncol(ima1)
+for (i in 2:col2) {
+  aov<-(summary(aov(ima1[,i] ~ ima1$label,ima1))[[1]])$`Pr(>F)`[1]
+
+  aov<-format(aov,digits = 3, scientific = T)
+
+
+  p<-ggplot(ima1, aes(x=label, y=ima1[,i],color=label))+geom_boxplot(size=1)+
+
+# geom_boxplot(outlier.colour="red", outlier.shape=8, outlier.size=4)+
+    geom_jitter(shape=16, position=position_jitter(0.3))+
+labs( y = "Protein intensity", title = colnames(ima1)[i],subtitle =paste("P=",aov))+
+
+theme(legend.direction = 'vertical',legend.position = 'none',panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black",size = 0.8),axis.text = element_text(size = 15, colour = "black"),axis.ticks = element_line(colour = "black"),axis.ticks.length = unit(0.3, "cm"),axis.title=element_text(size = 15, colour = "black"),title = element_text(size = 20, colour = "black"))+
+scale_color_manual(values=c('#548235','#eb7c30','#ffbf00','#4472c3','#2e3192'))
+ 
+ ggsave(p,file =paste0("14_Protein_express/Openswath_ima_",colnames(ima1)[i],".pdf"))
+}
+
+ 
+ 
+
+```
+
+```{r QC violin}
+
+rm(list=ls())
+library(ggplot2)
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+DIAnn2<-data.frame(DIAnn[,c(grep("_repB",names(DIAnn)))])
+
+names1<-c((gsub("_repB","",names(DIAnn2))),names(DIAnn2))
+
+
+DIAnn3<-data.frame(DIAnn[,c(which(names(DIAnn)%in% names1))])
+
+a<-substr(names(DIAnn3),25,40)
+names(DIAnn3)<-a
+DIAnn4<-data.frame(names(DIAnn3),t(DIAnn3))
+DIAnn5<-DIAnn4[order(DIAnn4[,1]),-1]
+DIAnn6<-data.frame(t(DIAnn5))
+
+d1 <- data.frame(2^(DIAnn6[,]))
+
+
+d2 <- data.frame((DIAnn6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/DIAnn_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(DIAnn[,-1])
+
+list2<-gsub("_repB","",list)
+
+DIAnn7<-data.frame(list2,t(2^DIAnn[,-1]))
+
+DIAnn8<-aggregate(DIAnn7[,colnames(DIAnn7)[2:ncol(DIAnn7)]],by=list(DIAnn7$list2),mean,na.rm= TRUE)
+
+DIAnn9<-DIAnn8[order(DIAnn8[,1]),]
+
+
+
+df1<-data.frame(t(DIAnn9[,-1]))
+
+names(df1)<-c(as.matrix(DIAnn9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+DIAnnA1<-as.numeric(df3$A1)
+
+DIAnnA2<-as.numeric(df3$A2)
+
+DIAnnA3<-as.numeric(df3$A3)
+DIAnnI1<-as.numeric(df3$I1)
+
+DIAnnI2<-as.numeric(df3$I2)
+
+DIAnnI3<-as.numeric(df3$I3)
+
+DIAnnK<-as.numeric(df3$K)
+
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Spec2<-data.frame(Spec[,c(grep("_repB",names(Spec)))])
+
+names1<-c((gsub("_repB","",names(Spec2))),names(Spec2))
+
+
+Spec3<-data.frame(Spec[,c(which(names(Spec)%in% names1))])
+
+a<-substr(names(Spec3),25,40)
+names(Spec3)<-a
+Spec4<-data.frame(names(Spec3),t(Spec3))
+Spec5<-Spec4[order(Spec4[,1]),-1]
+Spec6<-data.frame(t(Spec5))
+
+d1 <- data.frame(2^(Spec6[,]))
+
+
+d2 <- data.frame((Spec6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Spec_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Spec[,-1])
+
+list2<-gsub("_repB","",list)
+
+Spec7<-data.frame(list2,t(2^Spec[,-1]))
+
+Spec8<-aggregate(Spec7[,colnames(Spec7)[2:ncol(Spec7)]],by=list(Spec7$list2),mean,na.rm= TRUE)
+
+Spec9<-Spec8[order(Spec8[,1]),]
+
+
+
+df1<-data.frame(t(Spec9[,-1]))
+
+names(df1)<-c(as.matrix(Spec9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+SpecA1<-as.numeric(df3$A1)
+
+SpecA2<-as.numeric(df3$A2)
+
+SpecA3<-as.numeric(df3$A3)
+SpecI1<-as.numeric(df3$I1)
+
+SpecI2<-as.numeric(df3$I2)
+
+SpecI3<-as.numeric(df3$I3)
+
+SpecK<-as.numeric(df3$K)
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Encyo2<-data.frame(Encyo[,c(grep("_repB",names(Encyo)))])
+
+names1<-c((gsub("_repB","",names(Encyo2))),names(Encyo2))
+
+
+Encyo3<-data.frame(Encyo[,c(which(names(Encyo)%in% names1))])
+
+a<-substr(names(Encyo3),25,40)
+names(Encyo3)<-a
+Encyo4<-data.frame(names(Encyo3),t(Encyo3))
+Encyo5<-Encyo4[order(Encyo4[,1]),-1]
+Encyo6<-data.frame(t(Encyo5))
+
+d1 <- data.frame(2^(Encyo6[,]))
+
+
+d2 <- data.frame((Encyo6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Encyo_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Encyo[,-1])
+
+list2<-gsub("_repB","",list)
+
+Encyo7<-data.frame(list2,t(2^Encyo[,-1]))
+
+Encyo8<-aggregate(Encyo7[,colnames(Encyo7)[2:ncol(Encyo7)]],by=list(Encyo7$list2),mean,na.rm= TRUE)
+
+Encyo9<-Encyo8[order(Encyo8[,1]),]
+
+
+
+df1<-data.frame(t(Encyo9[,-1]))
+
+names(df1)<-c(as.matrix(Encyo9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+EncyoA1<-as.numeric(df3$A1)
+
+EncyoA2<-as.numeric(df3$A2)
+
+EncyoA3<-as.numeric(df3$A3)
+EncyoI1<-as.numeric(df3$I1)
+
+EncyoI2<-as.numeric(df3$I2)
+
+EncyoI3<-as.numeric(df3$I3)
+
+EncyoK<-as.numeric(df3$K)
+
+
+##############violin##
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",header = T,sep = '\t')
+
+Openswath2<-data.frame(Openswath[,c(grep("_repB",names(Openswath)))])
+
+names1<-c((gsub("_repB","",names(Openswath2))),names(Openswath2))
+
+
+Openswath3<-data.frame(Openswath[,c(which(names(Openswath)%in% names1))])
+
+a<-substr(names(Openswath3),25,40)
+names(Openswath3)<-a
+Openswath4<-data.frame(names(Openswath3),t(Openswath3))
+Openswath5<-Openswath4[order(Openswath4[,1]),-1]
+Openswath6<-data.frame(t(Openswath5))
+
+d1 <- data.frame(2^(Openswath6[,]))
+
+
+d2 <- data.frame((Openswath6[,]))
+
+for (i in 1:5) {
+  s1<-unlist(d1[,2*i-1])
+  s2<-unlist(d1[,2*i])
+  
+  s3<-unlist(d2[,2*i-1])
+  s4<-unlist(d2[,2*i])
+  
+r <- cor(s1, s2, use = 'pairwise.complete.obs')  
+
+
+ic1 <- data.frame(s3,s4)
+         ha <-  ggplot(ic1, aes(x = s3, y=s4))+
+             geom_point(shape=1,size=2,colour="steelblue2")+
+             stat_smooth(method=lm, se=FALSE,colour="black",size=0.3)+
+             
+           labs(y=(names(d2)[2*i]), 
+              x=(names(d2)[2*i-1]),
+              subtitle=list(paste0("r= ",round(r,3))))+
+            
+            theme_bw() +
+            theme(panel.grid =element_blank())+
+            theme(plot.subtitle=element_text(size=30, hjust=0, color="black"))+
+            theme(axis.title.x=element_text(size=20, hjust=0.5, color="black"))+
+            theme(axis.title.y=element_text(size=20, hjust=0.5, color="black"))
+     
+         
+ggsave(paste0("13_QC/Openswath_UnLog_QC",names(d2)[2*i-1],".pdf"),ha,width=8,height=8)
+
+}
+
+#######VIOLIN###
+library(vioplot)
+library(RColorBrewer)
+list<-names(Openswath[,-1])
+
+list2<-gsub("_repB","",list)
+
+Openswath7<-data.frame(list2,t(2^Openswath[,-1]))
+
+Openswath8<-aggregate(Openswath7[,colnames(Openswath7)[2:ncol(Openswath7)]],by=list(Openswath7$list2),mean,na.rm= TRUE)
+
+Openswath9<-Openswath8[order(Openswath8[,1]),]
+
+
+
+df1<-data.frame(t(Openswath9[,-1]))
+
+names(df1)<-c(as.matrix(Openswath9[,1]))
+
+
+df<-data.frame(df1)
+
+nrow<-nrow(df)
+
+ncol<-ncol(df)
+
+for (k in 1:7) {
+  
+
+
+for (i in 1:nrow ) {
+  
+  x<-as.matrix(df1[i,(3*k-2):(3*k)])
+  
+  cv<-sd(x)/mean(x)
+  
+  df[i,ncol+k]<-cv
+  
+}
+
+}
+
+df2<-df[,c((ncol+1):28)]
+
+names(df2)<-c("K","A1","A2","A3","I1","I2","I3")
+
+
+
+d<-names(df2)
+
+
+nrowdf2<-nrow(df2)
+
+ncoldf2<-ncol(df2)
+
+
+library(vioplot)
+
+library(RColorBrewer)
+
+df3<-df2
+
+OpenswathA1<-as.numeric(df3$A1)
+
+OpenswathA2<-as.numeric(df3$A2)
+
+OpenswathA3<-as.numeric(df3$A3)
+OpenswathI1<-as.numeric(df3$I1)
+
+OpenswathI2<-as.numeric(df3$I2)
+
+OpenswathI3<-as.numeric(df3$I3)
+
+OpenswathK<-as.numeric(df3$K)
+
+
+color<-c(brewer.pal(8,"Accent")[1:7])
+
+
+
+
+pdf("13_QC/Biorep_4software_violin.pdf")
+
+
+
+
+
+
+palette <- c( brewer.pal(11,"RdYlBu")[9:3])
+
+
+vioplot(EncyoA1, EncyoA2,EncyoA3,EncyoI1,EncyoI2,EncyoI3,EncyoK,
+        areaEqual=FALSE, col= palette,
+      rectCol= palette,
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="EncyclopeDIA", ylab="CV",plotCentre = "point")
+
+
+vioplot(SpecA1, SpecA2,SpecA3,SpecI1,SpecI2,SpecI3,SpecK,
+        areaEqual=FALSE, col= palette,
+      rectCol= palette,
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="Spectronaut", ylab="CV",plotCentre = "point")
+
+vioplot(DIAnnA1, DIAnnA2,DIAnnA3,DIAnnI1,DIAnnI2,DIAnnI3,DIAnnK,
+        areaEqual=FALSE, col= palette,
+      rectCol= palette,
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="DIAnn", ylab="CV",plotCentre = "point")
+
+
+vioplot(OpenswathA1, OpenswathA2,OpenswathA3,OpenswathI1,OpenswathI2,OpenswathI3,OpenswathK,
+        areaEqual=FALSE, col= palette,
+      rectCol= palette,
+     lineCol=c("black", "black", "black", "black", "black", "black", "black"),
+    border=c("black","black", "black", "black", "black", "black", "black"),
+ names=c( "k"  ,"A1","A2", "A3", "I1", "I2", "I3"),
+      main="biological replicates", xlab="Openswath", ylab="CV",plotCentre = "point")
+
+
+
+```
+
+
+```{r venn_protein_all}
+ rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+DIAnn<-read.table("05_peptide_matrix/part_ave/DIAnn_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+DIAnn1<-c(as.matrix(DIAnn$peptide))
+
+Encyo<-read.table("05_peptide_matrix/part_ave/Encyo_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+Encyo1<-c(as.matrix(Encyo$peptide))
+
+Spec<-read.table("05_peptide_matrix/part_ave/Spec_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+Spec1<-c(as.matrix(Spec$peptide))
+
+Openswath<-read.table("05_peptide_matrix/part_ave/Openswath_part_ave_KMDR_peptide_matrix.txt",sep = "\t",header = T)
+Openswath1<-c(as.matrix(Openswath$peptide))
+
+
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn1 = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+cex = 1.5, #每个区域label名称的大小
+fontfamily = "serif", #字体
+fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+cat.cex = 1.5, #每个分类名称大小
+cat.pos = 0,#
+cat.dist = 0.07, #
+cat.fontfamily = "serif",#分类字体
+rotation.degree = 270,  #旋转角度
+margin = 0.2#在网格单元中给出图周围空白量的编号
+
+
+)
+pdf("12_matrix_analyze/peptide_venn_4software.pdf")
+
+grid.draw(venn.plot)
+dev.off()
+
+ rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+DIAnn<-read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+DIAnn1<-c(as.matrix(DIAnn$protein))
+
+Encyo<-read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+Encyo1<-c(as.matrix(Encyo$protein))
+
+Spec<-read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+Spec1<-c(as.matrix(Spec$protein))
+
+Openswath<-read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep = "\t",header = T)
+Openswath1<-c(as.matrix(Openswath$protein))
+
+
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn1 = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+ cex = 1.5, #每个区域label名称的大小
+ fontfamily = "serif", #字体
+ fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+ cat.cex = 1.5, #每个分类名称大小
+ cat.pos = 0,#
+ cat.dist = 0.07, #
+ cat.fontfamily = "serif",#分类字体
+ rotation.degree = 270,  #旋转角度
+ margin = 0.2,#在网格单元中给出图周围空白量的编号
+imagetype = "svg"
+)
+pdf("12_matrix_analyze/protein_venn_4software.pdf",width=12,height=8)
+
+grid.draw(venn.plot)
+dev.off()
+
+
+```
+
+
+```{r venn_protien-sirtuin}
+
+
+rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+protein<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep = "\t",header = T)
+
+Spec1<-c(as.matrix(  protein[which(protein$Spec_ima_sirtuin==1),1]))
+DIAnn1<-c(as.matrix(  protein[which(protein$DIAnn_ima_sirtuin==1),1]))
+Openswath1<-c(as.matrix(  protein[which(protein$Openswath_ima_sirtuin==1),1]))
+Encyo1<-c(as.matrix(  protein[which(protein$Encyo_ima_sirtuin==1),1]))
+
+
+df<-cbind(Spec1,DIAnn1,Encyo1,Openswath1)
+
+
+
+
+
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+cex = 1.5, #每个区域label名称的大小
+fontfamily = "serif", #字体
+fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+cat.cex = 1.5, #每个分类名称大小
+cat.pos = 0,#
+cat.dist = 0.07, #
+cat.fontfamily = "serif",#分类字体
+rotation.degree = 270,  #旋转角度
+margin = 0.2#在网格单元中给出图周围空白量的编号
+)
+
+write.csv(df,"15_Sirtuin/Sirtuin_ima_overlap.csv")
+pdf("15_Sirtuin/Sirtuin_ima_overlap.pdf")
+
+grid.draw(venn.plot)
+
+
+dev.off()
+
+ rm(list=ls())
+
+library(grid)
+library(futile.logger)
+library(VennDiagram)
+
+protein<-read.table("15_Sirtuin/Sirtuin_Signaling_Pathway.txt",sep = "\t",header = T)
+
+Spec1<-c(as.matrix(  protein[which(protein$Spec_adr_sirtuin==1),1]))
+DIAnn1<-c(as.matrix(  protein[which(protein$DIAnn_adr_sirtuin==1),1]))
+Openswath1<-c(as.matrix(  protein[which(protein$Openswath_adr_sirtuin==1),1]))
+Encyo1<-c(as.matrix(  protein[which(protein$Encyo_adr_sirtuin==1),1]))
+
+df<-cbind(Spec1,DIAnn1,Encyo1,Openswath1)
+venn.plot <- venn.diagram(
+#数据列表
+x = list(
+DIAnn = DIAnn1,
+Spec = Spec1,
+Encyo = Encyo1,
+Openswath = Openswath1
+),
+
+filename = NULL,
+#保存路径
+col = "transparent", #指定图形的圆周边缘颜色transparent 透明
+fill = c("cornflowerblue", "green", "yellow", "darkorchid1"), #填充颜色
+alpha = 0.50, #透明度
+label.col = c("orange", "white", "darkorchid4", "white",
+"white", "white", "white", "white", "darkblue", "white",
+"white", "white", "white", "darkgreen", "white"),
+cex = 1.5, #每个区域label名称的大小
+fontfamily = "serif", #字体
+fontface = "bold",#字体格式
+cat.col = c("#3B82C5", "#EF7C1B", "#54B879", "#F5BC2E"), #分类颜
+cat.cex = 1.5, #每个分类名称大小
+cat.pos = 0,#
+cat.dist = 0.07, #
+cat.fontfamily = "serif",#分类字体
+rotation.degree = 270,  #旋转角度
+margin = 0.2#在网格单元中给出图周围空白量的编号
+
+
+)
+write.csv(df,"15_Sirtuin/Sirtuin_adr_overlap.csv")
+pdf("15_Sirtuin/Sirtuin_adr_overlap.pdf")
+
+grid.draw(venn.plot)
+dev.off()
+
+```
+
+
+
+
+```{r keyprotein lineplot}
+
+rm(list=ls())
+library(ggplot2)
+library(Rmisc)
+library(stringr)
+library(reshape2)
+protein<-read.table("12_matrix_analyze/protein_overlap.txt",sep="\t",header = T)
+
+Openswath <- read.table("06_protein_matrix/proteotypic/Openswath_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+Openswath2<-data.frame(Openswath[which(Openswath$protein%in% protein$elements),])
+row.names(Openswath2)<-Openswath2$protein
+Openswath3<-data.frame("Openswath",t(Openswath2[,-1]))
+Openswath4<-data.frame(str_split_fixed(row.names(Openswath3),"_",7)[,5],Openswath3)
+names(Openswath4)<-c("group","software",names(Openswath4[,-c(1:2)]))
+
+
+DIAnn <- read.table("06_protein_matrix/proteotypic/DIAnn_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+DIAnn2<-data.frame(DIAnn[which(DIAnn$protein%in% protein$elements),])
+row.names(DIAnn2)<-DIAnn2$protein
+DIAnn3<-data.frame("DIAnn",t(DIAnn2[,-1]))
+DIAnn4<-data.frame(str_split_fixed(row.names(DIAnn3),"_",7)[,5],DIAnn3)
+names(DIAnn4)<-c("group","software",names(DIAnn4[,-c(1:2)]))
+
+Spec <- read.table("06_protein_matrix/proteotypic/Spec_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+Spec2<-data.frame(Spec[which(Spec$protein%in% protein$elements),])
+row.names(Spec2)<-Spec2$protein
+Spec3<-data.frame("Spec",t(Spec2[,-1]))
+Spec4<-data.frame(str_split_fixed(row.names(Spec3),"_",7)[,5],Spec3)
+names(Spec4)<-c("group","software",names(Spec4[,-c(1:2)]))
+
+Encyo <- read.table("06_protein_matrix/proteotypic/Encyo_part_ave_KMDR_proteotypic_matrix.txt",sep="\t",header = T,stringsAsFactors = F)
+Encyo2<-data.frame(Encyo[which(Encyo$protein%in% protein$elements),])
+row.names(Encyo2)<-Encyo2$protein
+Encyo3<-data.frame("Encyo",t(Encyo2[,-1]))
+Encyo4<-data.frame(str_split_fixed(row.names(Encyo3),"_",7)[,5],Encyo3)
+names(Encyo4)<-c("group","software",names(Encyo4[,-c(1:2)]))
+df<-rbind(Openswath4,DIAnn4,Spec4,Encyo4)
+
+df1<-df[-c(1,2)]
+
+df2<-data.frame(apply(df1,2,function(X) sum(is.na(X)/104)))
+
+names(df2)<-("NAratio")
+
+df3<-data.frame(df1[,-(which(df2$NAratio>0.7))])
+
+df4<-data.frame(df[,c(1,2)],df3)
+
+dfIMA<-df[which(df$group%in%c("K","I1","I2","I3")),]
+dfIMA$group<-gsub("I","",dfIMA$group)
+dfIMA$group<-gsub("K","0",dfIMA$group)
+dfIMA$group<-as.numeric(dfIMA$group)
+
+
+myNormalize <- function (target) {
+    (target - min(target,na.rm = T))/(max(target,na.rm = T) - min(target,na.rm = T))
+}
+
+dfIMA_normalize_Openswath<-data.frame(dfIMA[which(dfIMA$software=="Openswath"),1:2],apply(dfIMA[which(dfIMA$software=="Openswath"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize_DIAnn<-data.frame(dfIMA[which(dfIMA$software=="DIAnn"),1:2],apply(dfIMA[which(dfIMA$software=="DIAnn"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize_Spec<-data.frame(dfIMA[which(dfIMA$software=="Spec"),1:2],apply(dfIMA[which(dfIMA$software=="Spec"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize_Encyo<-data.frame(dfIMA[which(dfIMA$software=="Encyo"),1:2],apply(dfIMA[which(dfIMA$software=="Encyo"),3:ncol(dfIMA)],2,myNormalize))
+dfIMA_normalize<-rbind(dfIMA_normalize_Openswath,dfIMA_normalize_DIAnn,dfIMA_normalize_Spec,dfIMA_normalize_Encyo)
+
+for (i in 3:ncol(dfIMA_normalize)) {
+tg <- dfIMA_normalize[,c(1,2,i)]
+names(tg)<-c("IMA","software","protein")
+tgc <- summarySE(tg, measurevar="protein", groupvars=c("software","IMA"))
+anova<-data.frame("software","p")
+names(anova)<-c("software","p")
+anova0<-anova[-1,]
+
+
+ for(a in c("DIAnn","Encyo", "Openswath","Spec")){
+  
+     tg1<- tg[which(tg$software== paste0(a)),]
+        tg1[is.na(tg1)]<-0
+      b <-(summary(aov(tg1$protein ~ tg1$IMA, tg1))[[1]])$`Pr(>F)`[1]
+      c<-signif(b,2)
+      anova2<-anova[-1,]
+      anova2[1,1]<-paste0(a)
+      anova2[1,2]<-c
+
+      anova0<-rbind(anova0,anova2)
+}
+
+
+plot<-ggplot(tgc, aes(x=IMA, y=protein, colour=software))+   ggtitle(paste0(names(dfIMA_normalize)[i]))+
+    geom_errorbar(aes(ymin=protein-se, ymax=protein+se), width=.1) +
+    geom_line() +
+    geom_point()+
+  ylim(0,1)+
+    scale_color_manual(values=c("#7E1B1E","#EB9C21","#6286BE","#B2D9AC"))+
+    annotate("text", label = paste("p=",anova0[1,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*1, colour = "#7E1B1E")+
+    annotate("text", label = paste("p=",anova0[2,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*0.9,colour = "#EB9C21")+
+    annotate("text", label = paste("p=",anova0[3,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*0.8,colour = "#6286BE")+
+    annotate("text", label = paste("p=",anova0[4,2],sep = ""), x = 0.5, y=max(tgc$protein,na.rm = T)*0.7,colour = "#B2D9AC")
+
+p<-plot+ theme(legend.direction = 'horizontal',legend.position = 'top',legend.text = element_text(size = 15,color = "black"), legend.title = element_text(size=15,color="black") ,panel.grid.major =element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),axis.line = element_line(colour = "black"), axis.ticks.length = unit(6, "pt"),axis.text = element_text(size=15,color="black")) 
+ggsave(filename  = paste0("17_line_plot/IMA/IMA","_",names(dfIMA_normalize)[i],".pdf"),plot=p,device = NULL,width = 6,height = 6)
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
